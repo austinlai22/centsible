@@ -1,0 +1,194 @@
+/**
+ * flo·w — Express server entry point
+ *
+ * Security layers applied here (in order):
+ *  1. Helmet       — sets secure HTTP headers (XSS, clickjacking, MIME sniffing, etc.)
+ *  2. CORS         — only accepts requests from the configured frontend origin
+ *  3. Rate limiter — caps requests per IP to prevent brute-force and scraping
+ *  4. JSON parser  — with size limit to prevent payload-based DoS
+ *  5. Cookie parser — for reading HttpOnly JWT cookies
+ *
+ * All Plaid API calls happen here on the server.
+ * The frontend never receives or stores Plaid access tokens.
+ */
+
+import "dotenv/config";
+import express from "express";
+import helmet from "helmet";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import { rateLimit } from "express-rate-limit";
+
+import { testConnection, query, pool } from "./db/client.js";
+import authRouter    from "./routes/auth.js";
+import plaidRouter   from "./routes/plaid.js";
+import dataRouter    from "./routes/data.js";
+import rewardsRouter from "./routes/rewards.js";
+
+const app  = express();
+const PORT = process.env.PORT || 3001;
+
+// ─── 1. Helmet — secure HTTP headers ─────────────────────────────────────────
+// Sets X-Frame-Options, X-Content-Type-Options, Referrer-Policy,
+// Strict-Transport-Security, and more — all of which are meaningful for a
+// JSON API (they apply to any response this server sends, including error
+// pages and the rare case of a browser navigating here directly).
+//
+// CSP is intentionally left at Helmet's default (default-src 'self') rather
+// than customised here: directives like script-src or frame-src only matter
+// for HTML pages a browser renders, and this server never renders one — it
+// returns JSON. The Plaid Link SDK and Google Fonts loaded by the frontend
+// need their own CSP allowances, which belong in the FRONTEND's nginx
+// config or HTML meta tag (see frontend/index.html and frontend/nginx.conf),
+// not here.
+app.use(helmet());
+
+// ─── 2. CORS — restrict to known frontend origin ──────────────────────────────
+// Credentials: true is required for HttpOnly cookies to be sent cross-origin.
+app.use(cors({
+  origin:      process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  credentials: true,
+  methods:     ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+
+// ─── 3. Rate limiting ─────────────────────────────────────────────────────────
+// Global limiter: 100 requests / 15 minutes per IP.
+// Auth endpoints get a stricter limiter defined in routes/auth.js.
+//
+// /plaid/webhook is exempted via `skip` below: webhook calls all originate
+// from Plaid's own infrastructure (shared IPs across every flo·w customer's
+// webhook traffic, not just yours), so a busy sync period for other users
+// could exhaust this bucket and cause Plaid to drop legitimate events for
+// you. The webhook endpoint doesn't need this protection anyway — it's
+// already gated by JWS signature verification (verifyPlaidWebhook), which is
+// a stronger guarantee than "fewer than 100 requests" could ever provide.
+const globalLimiter = rateLimit({
+  windowMs:  15 * 60 * 1000, // 15 minutes
+  max:       100,
+  standardHeaders: true,
+  legacyHeaders:   false,
+  message: { error: "Too many requests — please try again later." },
+  skip: (req) => req.path === "/plaid/webhook",
+});
+app.use(globalLimiter);
+// --- 4. Body parsers ---------------------------------------------------------------
+// Plaid webhook signature verification requires the exact raw request body bytes.
+// We capture rawBody for /plaid/webhook only; everything else gets normal JSON parsing.
+app.use((req, res, next) => {
+  if (req.path === "/plaid/webhook") {
+    let data = "";
+    req.setEncoding("utf8");
+    req.on("data", chunk => { data += chunk; });
+    req.on("end", () => {
+      req.rawBody = data;
+      try { req.body = JSON.parse(data); } catch (_) { req.body = {}; }
+      next();
+    });
+  } else {
+    next();
+  }
+});
+app.use(express.json({ limit: "10kb" }));
+app.use(express.urlencoded({ extended: false, limit: "10kb" }));
+
+// ─── 5. Cookie parser ────────────────────────────────────────────────────────
+app.use(cookieParser());
+
+// ─── Routes ───────────────────────────────────────────────────────────────────
+app.use("/auth",  authRouter);
+app.use("/plaid", plaidRouter);
+app.use("/api",   dataRouter);
+app.use("/api/rewards", rewardsRouter);
+
+// ─── Health check ─────────────────────────────────────────────────────────────
+// Unauthenticated — safe to expose, and required by most container
+// orchestrators (Docker, Kubernetes, Railway, Render, Fly.io) to know when
+// the container is actually ready to receive traffic vs. just "the process
+// started." A health check that only confirms Express is running (not the
+// DB) gives false confidence — the most common real-world failure mode is
+// "server is up, database is unreachable."
+app.get("/health", async (_req, res) => {
+  try {
+    await query("SELECT 1");
+    return res.json({ status: "ok", db: "connected", ts: new Date().toISOString() });
+  } catch (err) {
+    // 503, not 200 — tells the orchestrator this instance is not ready to
+    // serve traffic, so it can hold off routing requests here or restart it.
+    return res.status(503).json({ status: "error", db: "unreachable", ts: new Date().toISOString() });
+  }
+});
+
+// ─── 404 handler ─────────────────────────────────────────────────────────────
+app.use((_req, res) => res.status(404).json({ error: "Not found" }));
+
+// ─── Global error handler ────────────────────────────────────────────────────
+// Never leaks stack traces or internal details to the client.
+app.use((err, _req, res, _next) => {
+  // Log internally (swap for a real logger like Pino in production)
+  console.error("[error]", err.message, process.env.NODE_ENV === "development" ? err.stack : "");
+  const status = err.status || err.statusCode || 500;
+  // Only expose message in development; always return generic error in production
+  const message = process.env.NODE_ENV === "production" ? "Something went wrong" : err.message;
+  res.status(status).json({ error: message });
+});
+
+// ─── Start ────────────────────────────────────────────────────────────────────
+let server;
+
+async function start() {
+  await testConnection(); // Verify DB is reachable before accepting traffic
+  server = app.listen(PORT, () => {
+    console.log(`[flow-server] Running on port ${PORT} (${process.env.NODE_ENV})`);
+  });
+}
+
+start().catch(err => {
+  console.error("[startup] Fatal error:", err);
+  process.exit(1);
+});
+
+// ─── Graceful shutdown ────────────────────────────────────────────────────────
+// Container orchestrators send SIGTERM before killing a container (e.g. during
+// a rolling deploy or autoscaling event). Without handling it, in-flight
+// requests get dropped mid-response and the DB pool is torn down uncleanly.
+//
+// The sequence here:
+//   1. Stop accepting new connections (server.close)
+//   2. Let in-flight requests finish (server.close's callback fires once
+//      all existing connections complete)
+//   3. Close the DB pool cleanly
+//   4. Exit
+//
+// A 10s hard-exit timer guards against a connection that never closes
+// (e.g. a hung request) blocking shutdown indefinitely — container platforms
+// typically force-kill after ~10-30s anyway, so this just makes the exit
+// intentional rather than forced.
+async function shutdown(signal) {
+  console.log(`[flow-server] Received ${signal}, shutting down gracefully…`);
+
+  const forceExitTimer = setTimeout(() => {
+    console.error("[flow-server] Shutdown timed out — forcing exit");
+    process.exit(1);
+  }, 10_000);
+
+  try {
+    if (server) {
+      await new Promise((resolve, reject) => {
+        server.close(err => err ? reject(err) : resolve());
+      });
+      console.log("[flow-server] HTTP server closed — no longer accepting requests");
+    }
+    await pool.end();
+    console.log("[flow-server] Database pool closed");
+    clearTimeout(forceExitTimer);
+    process.exit(0);
+  } catch (err) {
+    console.error("[flow-server] Error during shutdown:", err.message);
+    clearTimeout(forceExitTimer);
+    process.exit(1);
+  }
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT",  () => shutdown("SIGINT"));

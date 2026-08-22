@@ -1,0 +1,23 @@
+# Never let real secrets or local config end up baked into an image layer
+.env
+.env.*
+!.env.example
+
+# Dependencies — installed fresh inside the container
+node_modules
+npm-debug.log*
+
+# Version control and editor noise
+.git
+.gitignore
+.vscode
+.idea
+*.swp
+
+# Docs and local-only files — not needed at runtime
+README.md
+*.md
+
+# OS noise
+.DS_Store
+Thumbs.db

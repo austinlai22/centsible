@@ -1,0 +1,89 @@
+# ─── flo·w — docker-compose ─────────────────────────────────────────────────────
+#
+# Brings up Postgres + the API server together. Useful for:
+#   - Local development without installing Postgres natively
+#   - Self-hosted production deployment on a single VM (Railway/Render/Fly
+#     are usually a better fit for actual production — see server/README.md
+#     — but this works fine for a small-scale self-hosted setup)
+#
+# Usage:
+#   docker compose up -d          # start everything in the background
+#   docker compose logs -f api    # tail the API server's logs
+#   docker compose down           # stop everything (data persists in the volume)
+#   docker compose down -v        # stop AND delete the database volume
+#
+# Before running, copy server/.env.example to server/.env and fill in real
+# values — particularly JWT_ACCESS_SECRET, JWT_REFRESH_SECRET,
+# ENCRYPTION_KEY, and your Plaid credentials. DATABASE_URL should point at
+# the "db" service defined below, not localhost — see the comment near
+# DATABASE_URL in .env.example.
+
+services:
+  # ── PostgreSQL ────────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-flow_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_production}
+      POSTGRES_DB:       ${POSTGRES_DB:-flow_db}
+    volumes:
+      # Named volume — data survives `docker compose down` (but not `down -v`)
+      - flow_postgres_data:/var/lib/postgresql/data
+    ports:
+      # Exposed on the host only for local dev convenience (e.g. connecting
+      # with a GUI client). Remove this in a real production deployment —
+      # the API container can reach Postgres over the internal Docker
+      # network without exposing the port to the host at all.
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-flow_user} -d ${POSTGRES_DB:-flow_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── API server ────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./server/.env
+    environment:
+      # Overrides whatever DATABASE_URL is in .env to point at the "db"
+      # service by its Docker Compose network name, not localhost — the
+      # API container and the Postgres container are different network
+      # namespaces, so "localhost" inside the API container means the API
+      # container itself, not the db container.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-flow_user}:${POSTGRES_PASSWORD:-changeme_in_production}@db:5432/${POSTGRES_DB:-flow_db}
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  # ── Frontend ──────────────────────────────────────────────────────────────────
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Build-time only — Vite inlines this into the JS bundle. If you
+        # change it, you must rebuild (docker compose build web), not just
+        # restart the container.
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3001}
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  flow_postgres_data:

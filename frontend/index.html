@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+    <title>flo·w — your money, clearly</title>
+    <meta name="description" content="A modern, ethical personal finance app. No ads, no data selling." />
+    <!--
+      Content-Security-Policy: this is the policy that actually matters for
+      this app — it governs what the BROWSER will allow this page to load.
+      Each allowance corresponds to something the app genuinely needs:
+        - fonts.googleapis.com / fonts.gstatic.com — Fraunces + DM Sans
+        - cdn.plaid.com                              — Plaid Link SDK script + iframe
+        - connect-src 'self' + your API origin       — fetch() calls to the backend
+      If you change VITE_API_URL to a different domain, add that domain to
+      connect-src below too, or fetch() calls to your API will be blocked
+      by the browser even though CORS on the backend would otherwise allow them.
+
+      ⚠️ The http://localhost:3001 below is a LOCAL DEV PLACEHOLDER.
+      Before building for production, replace it with your real deployed
+      API URL (the same value as VITE_API_URL in your production build).
+    -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' https://cdn.plaid.com;
+      connect-src 'self' https://cdn.plaid.com http://localhost:3001 https://*.plaid.com;
+      frame-src https://cdn.plaid.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data:;
+    ">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

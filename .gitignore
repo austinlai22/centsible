@@ -1,0 +1,40 @@
+# ─── Secrets — never commit these ──────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+!*.env.example
+
+# ─── Dependencies ───────────────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ─── Build output ───────────────────────────────────────────────────────────────
+dist/
+build/
+.next/
+out/
+
+# ─── Logs ────────────────────────────────────────────────────────────────────────
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# ─── Editor / OS noise ───────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# ─── Testing / coverage ───────────────────────────────────────────────────────────
+coverage/
+
+# ─── Docker ──────────────────────────────────────────────────────────────────────
+# (docker-compose volumes are managed by Docker itself, not the filesystem
+# in a way git would track — nothing additional needed here)
+
+# ─── Credentials scratch files ───────────────────────────────────────────────────
+Budget App Credentials.rtf
+*credentials*.rtf
