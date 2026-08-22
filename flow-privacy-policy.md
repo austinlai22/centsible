@@ -32,11 +32,27 @@ We believe in collecting the minimum necessary to deliver a genuinely useful pro
 
 | What | Why |
 |------|-----|
-| Name (first name only, if you choose) | To personalize your experience |
+| Name | To personalize your experience |
+| Email address | To identify your account, sign you in, and contact you about account or security issues |
 | Onboarding answers (income range, financial goals, spending style) | To set up your initial budget and tailor the app to your situation |
 | Transactions you manually enter | To power your budget, spending breakdowns, and goal tracking |
 | Savings goals you create | To track your progress and send you milestone notifications |
 | Spending limits and budget amounts | To generate alerts and summaries |
+| Phone number (optional) | To secure your account with multi-factor authentication, and to reach you about account or security issues. Never used for marketing. |
+| Home address (optional) | [STATE YOUR PURPOSE — see note below] |
+
+> **⚠️ Before publishing:** the home address row needs a real, specific purpose
+> or the field should be removed from the app. "We might need it later" is not
+> a lawful basis under CCPA/CPRA or the other US state privacy laws this policy
+> promises to honour — §5 commits you to the same rights for every user
+> regardless of state. Both this table and §3 ("Your data is used for exactly
+> one purpose") state that you collect only what you need, so an address with
+> no stated use directly contradicts your own policy. If the purpose is future
+> KYC or card issuance, say so; if there isn't one yet, collect it when you
+> actually need it.
+
+Phone number and home address are **optional** — the app works fully without
+them, and you can clear either at any time from Settings → Personal info.
 
 ### 2b. Information from your bank (if you connect an account)
 

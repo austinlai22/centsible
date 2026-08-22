@@ -200,7 +200,14 @@ router.get("/me", requireAuth, async (req, res, next) => {
 const UpdateMeSchema = z.object({
   name:  z.string().min(1).max(80).optional(),
   email: z.string().email().max(254).toLowerCase().optional(),
-}).refine(d => d.name || d.email, { message: "Provide at least one field to update" });
+  // Deliberately permissive: international numbers vary enormously in
+  // punctuation and length, and a strict pattern mostly rejects valid input
+  // from outside the author's own country. Validate that it *could* be a
+  // phone number, and leave real verification to an SMS round-trip if this
+  // ever becomes an MFA channel.
+  phone:   z.string().max(32).regex(/^[0-9+()\-.\s]*$/, "Phone can only contain digits and + ( ) - . spaces").optional(),
+  address: z.string().max(300).optional(),
+}).refine(d => Object.keys(d).length > 0, { message: "Provide at least one field to update" });
 
 router.put("/me", requireAuth, async (req, res, next) => {
   try {
@@ -208,7 +215,7 @@ router.put("/me", requireAuth, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.errors[0].message });
     }
-    const { name, email } = parsed.data;
+    const { name, email, phone, address } = parsed.data;
 
     // Build update dynamically — only touch provided fields
     const sets   = [];
@@ -225,6 +232,22 @@ router.put("/me", requireAuth, async (req, res, next) => {
       }
       params.push(email);
       sets.push(`email = $${params.length}`);
+    }
+    // Presence-checked rather than truthiness-checked, unlike name/email
+    // above: "" is how the client clears an optional field, and a truthiness
+    // check would silently ignore it — leaving the user unable to remove a
+    // phone number or address once saved. Stored as NULL rather than "".
+    if ("phone" in parsed.data) {
+      params.push(phone.trim() || null);
+      sets.push(`phone = $${params.length}`);
+    }
+    if ("address" in parsed.data) {
+      params.push(address.trim() || null);
+      sets.push(`address = $${params.length}`);
+    }
+
+    if (sets.length === 0) {
+      return res.status(400).json({ error: "No valid fields to update" });
     }
 
     params.push(req.userId);

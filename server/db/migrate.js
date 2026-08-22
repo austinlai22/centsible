@@ -47,6 +47,19 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS financial_goal  TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS housing_cost    NUMERIC(12,2);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS spending_style  TEXT;
 
+-- ── users: contact details ───────────────────────────────────────────────────
+-- Backs the phone/address fields in About → Personal info. These were present
+-- in the UI long before this column existed, so PUT /auth/me accepted them,
+-- reported success, and dropped them on the floor.
+--
+-- phone is stored as the user typed it rather than normalised to E.164. If it
+-- later becomes an MFA delivery channel or a login identifier it should be
+-- normalised on write and given a UNIQUE index — an un-normalised number
+-- cannot be looked up reliably, and two spellings of one number would create
+-- two accounts.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone           TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS address         TEXT;
+
 -- ── refresh_tokens ────────────────────────────────────────────────────────────
 -- Stores hashed refresh tokens for rotation.
 -- A token is invalidated by deleting its row (logout) or replacing it (rotation).
