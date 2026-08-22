@@ -6,6 +6,7 @@ import { fmtDec } from "../lib/format.js";
 import { getLevelInfo } from "../lib/periods.js";
 import { Card, Field, Sheet, MenuRow, Spinner, ErrorBanner, SkeletonList } from "../components/ui.jsx";
 import { PrivacyModal } from "../components/PrivacyModal.jsx";
+import { MfaSettings } from "../components/MfaSettings.jsx";
 import { RewardsContent } from "./Rewards.jsx";
 import { usePlaidLink } from "../hooks/usePlaidLink.js";
 
@@ -121,6 +122,13 @@ export default function About({
         </Card>
 
         <Card style={{padding:"0 20px"}}>
+          <SecLabel label="Security"/>
+          <MenuRow icon="🔐" label="Two-factor authentication"
+            sub="Require a code from your phone at sign-in"
+            onClick={open("security")} noBorder/>
+        </Card>
+
+        <Card style={{padding:"0 20px"}}>
           <SecLabel label="Privacy & Legal"/>
           <MenuRow icon="📄" label="Privacy Policy" sub="How we handle your data" onClick={open("privacy")}/>
           <MenuRow icon="🗑️" label="Delete my account" sub="Permanently erase all of your data" danger
@@ -207,6 +215,14 @@ export default function About({
           onClose={close}>
           <div style={{overflowY:"auto",flex:1,minHeight:0,padding:"16px 16px calc(36px + env(safe-area-inset-bottom))"}}>
             <RewardsContent points={points} redeemed={redeemed} earn={earn} redeem={redeem} startOnRedeem={section==="redeem"}/>
+          </div>
+        </Sheet>
+      )}
+
+      {section==="security"&&(
+        <Sheet title="Security" subtitle="Two-factor authentication" onClose={close}>
+          <div style={{overflowY:"auto",flex:1,minHeight:0,padding:"4px 16px calc(36px + env(safe-area-inset-bottom))"}}>
+            <MfaSettings/>
           </div>
         </Sheet>
       )}

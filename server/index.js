@@ -24,6 +24,7 @@ import authRouter    from "./routes/auth.js";
 import plaidRouter   from "./routes/plaid.js";
 import dataRouter    from "./routes/data.js";
 import rewardsRouter from "./routes/rewards.js";
+import mfaRouter     from "./routes/mfa.js";
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -155,6 +156,9 @@ app.use((req, res, next) => {
 });
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
+// Mounted BEFORE /auth so /auth/mfa/* resolves here rather than falling
+// through to authRouter's 404.
+app.use("/auth/mfa", mfaRouter);
 app.use("/auth",  authRouter);
 app.use("/plaid", plaidRouter);
 app.use("/api",   dataRouter);

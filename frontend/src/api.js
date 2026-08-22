@@ -261,3 +261,30 @@ export const authApi = {
   refresh: () =>
     api.post("/auth/refresh", {}),
 };
+
+// ─── Two-factor authentication ───────────────────────────────────────────────
+
+export const mfaApi = {
+  /** { enabled, pendingSetup, type, confirmedAt, recoveryCodesRemaining } */
+  status: () => api.get("/auth/mfa"),
+
+  /** Begins enrolment. Returns { secret, uri, qr } — qr is a data: URI. */
+  startTotp: () => api.post("/auth/mfa/totp/start", {}),
+
+  /** Proves a code and switches MFA on. Returns { recoveryCodes } ONCE. */
+  confirmTotp: (token) => api.post("/auth/mfa/totp/confirm", { token }),
+
+  /** Password re-auth required — an unlocked session alone isn't enough. */
+  disable: (password) => api.post("/auth/mfa/disable", { password }),
+
+  regenerateRecoveryCodes: (password) =>
+    api.post("/auth/mfa/recovery/regenerate", { password }),
+
+  /**
+   * Completes a login challenge. Called while holding only the short-lived
+   * mfa_pending cookie — there is no session yet. Pass either a TOTP code or
+   * a recovery code.
+   */
+  verify: ({ token, recoveryCode }) =>
+    api.post("/auth/mfa/verify", token ? { token } : { recoveryCode }),
+};

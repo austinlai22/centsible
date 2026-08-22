@@ -31,7 +31,10 @@ import {
   revokeRefreshToken,
   setTokenCookies,
   clearTokenCookies,
+  signMfaPendingToken,
+  setMfaPendingCookie,
 }                      from "../lib/jwt.js";
+import { hasConfirmedMfa } from "../lib/mfa.js";
 import { requireAuth } from "../middleware/auth.js";
 import {
   PROVIDERS, addIdentity, listProviders, touchIdentity,
@@ -39,10 +42,16 @@ import {
 
 const router = Router();
 
-// Strict rate limit for auth endpoints — 10 attempts per 15 minutes per IP
+// Strict rate limit for auth endpoints — 10 attempts per 15 minutes per IP.
+//
+// Configurable for the same reason the global limiter is: the default is tuned
+// for real humans signing in, and it is far too tight for an automated test
+// run or a load test, where hitting it produces confusing failures that look
+// like broken auth rather than a throttle. Do NOT raise it in production to
+// silence complaints — this is the brute-force defence for password login.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: Number(process.env.AUTH_RATE_LIMIT_MAX ?? 10),
   message: { error: "Too many attempts — please wait before trying again." },
   standardHeaders: true,
   legacyHeaders: false,
@@ -150,6 +159,16 @@ router.post("/login", authLimiter, async (req, res, next) => {
 
     const user = rows[0];
     await touchIdentity(user.id, PROVIDERS.PASSWORD);
+
+    // Second factor, if this account has one confirmed. No access or refresh
+    // cookie is issued here — the only thing the user gets is a 5-minute
+    // pending token authorising POST /auth/mfa/verify. Issuing the real
+    // session first and "checking MFA afterwards" is the classic way to build
+    // an MFA prompt that can simply be closed.
+    if (await hasConfirmedMfa(user.id)) {
+      setMfaPendingCookie(res, signMfaPendingToken(user.id));
+      return res.json({ mfaRequired: true });
+    }
 
     const accessToken          = signAccessToken(user.id);
     const { raw: refreshToken } = await issueRefreshToken(user.id);

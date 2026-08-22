@@ -1,7 +1,82 @@
 import { useState } from "react";
-import { authApi, ApiError } from "../api.js";
+import { authApi, mfaApi, ApiError } from "../api.js";
 import { S } from "../styles.js";
 import { Spinner } from "../components/ui.jsx";
+
+const IS = {width:"100%",background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.15)",borderRadius:12,padding:"13px 16px",color:"#F5F0E8",fontSize:16,outline:"none"};
+
+/**
+ * The second-factor step. Reached only after the password is accepted, while
+ * the browser holds the short-lived mfa_pending cookie and nothing else — the
+ * user is not signed in yet, and closing this screen leaves them signed out.
+ */
+function MfaChallenge({ onAuth, onCancel }) {
+  const [useRecovery, setUseRecovery] = useState(false);
+  const [value, setValue] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const submit = async (e) => {
+    e?.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await mfaApi.verify(
+        useRecovery ? { recoveryCode: value.trim() } : { token: value.replace(/\s/g, "") }
+      );
+      onAuth(res.user);
+    } catch (err) {
+      setError(err.message || "That didn't work. Please try again.");
+      setValue("");
+    } finally { setLoading(false); }
+  };
+
+  const swap = () => { setUseRecovery(v => !v); setValue(""); setError(""); };
+
+  return (
+    <form onSubmit={submit} className="slide-up"
+      style={{background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.09)",borderRadius:20,padding:"36px 32px"}}>
+      <h2 style={{...S.serif,color:"#F5F0E8",fontSize:22,fontWeight:400,marginBottom:8}}>Two-factor authentication</h2>
+      <p style={{color:"#C8BAA8",fontSize:14,lineHeight:1.55,marginBottom:22}}>
+        {useRecovery
+          ? "Enter one of the recovery codes you saved when you turned on two-factor authentication."
+          : "Enter the 6-digit code from your authenticator app."}
+      </p>
+      <div style={{...S.col,gap:14}}>
+        <input
+          value={value}
+          onChange={e=>setValue(useRecovery ? e.target.value : e.target.value.replace(/[^0-9]/g,"").slice(0,6))}
+          placeholder={useRecovery ? "abcd-efgh" : "123456"}
+          // one-time-code lets iOS and Android offer the code from the
+          // authenticator app or clipboard directly above the keyboard.
+          autoComplete="one-time-code"
+          inputMode={useRecovery ? "text" : "numeric"}
+          autoFocus
+          style={{...IS, letterSpacing: useRecovery ? "normal" : "0.4em", textAlign:"center", fontSize:20}}
+        />
+        {error && (
+          <div role="alert" style={{background:"var(--rose-light)",border:"1px solid #e8b4b2",borderRadius:10,padding:"10px 14px"}}>
+            <p style={{fontSize:13,color:"var(--rose)"}}>⚠️ {error}</p>
+          </div>
+        )}
+        <button type="submit" disabled={loading || !value.trim()}
+          style={{...S.darkBtn(),background:loading||!value.trim()?"rgba(255,255,255,.15)":"#B8882A",color:loading||!value.trim()?"#C8BAA8":"#1A1714",borderRadius:12,minHeight:46}}>
+          {loading ? <Spinner size={16}/> : "Verify →"}
+        </button>
+      </div>
+      <div style={{marginTop:18,textAlign:"center"}}>
+        <button type="button" onClick={swap} style={{background:"none",border:"none",color:"#B8882A",fontSize:13,cursor:"pointer",padding:0}}>
+          {useRecovery ? "Use my authenticator app instead" : "I've lost my device — use a recovery code"}
+        </button>
+        <p style={{marginTop:12}}>
+          <button type="button" onClick={onCancel} style={{background:"none",border:"none",color:"#C8BAA8",fontSize:13,cursor:"pointer",padding:0}}>
+            Cancel and sign in as someone else
+          </button>
+        </p>
+      </div>
+    </form>
+  );
+}
 
 /**
  * Login / register. Rendered as a real <form> so mobile keyboards show a
@@ -15,6 +90,9 @@ export function AuthScreen({onAuth}){
   const [name,setName]     = useState("");
   const [error,setError]   = useState("");
   const [loading,setLoading] = useState(false);
+  // Set when the server answers a correct password with mfaRequired. The
+  // browser now holds only the 5-minute mfa_pending cookie — no session.
+  const [mfaStep,setMfaStep] = useState(false);
 
   const strength = (() => {
     if(!password.length) return null;
@@ -34,15 +112,21 @@ export function AuthScreen({onAuth}){
       const res = mode==="login"
         ? await authApi.login(email.trim(), password)
         : await authApi.register(email.trim(), password, name.trim()||undefined);
+
+      // Password was correct but the account has a second factor. Do NOT call
+      // onAuth here — there is no session yet, and treating this as a
+      // successful login would render the app against an unauthenticated
+      // browser, which then 401s on every request.
+      if (res.mfaRequired) { setMfaStep(true); setPass(""); return; }
+
       onAuth(res.user);
     } catch(err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
     } finally { setLoading(false); }
   };
 
-  // fontSize 16 is load-bearing: iOS Safari auto-zooms the viewport when a
-  // focused input is smaller than 16px, which visibly jerks the whole page.
-  const IS={width:"100%",background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.15)",borderRadius:12,padding:"13px 16px",color:"#F5F0E8",fontSize:16,outline:"none"};
+  // IS is module-scoped above. fontSize 16 there is load-bearing: iOS Safari
+  // auto-zooms the viewport when a focused input is smaller than 16px.
   const toggle=()=>{setMode(m=>m==="login"?"register":"login");setError("");};
 
   return(
@@ -53,6 +137,12 @@ export function AuthScreen({onAuth}){
           <p style={{color:"#C8BAA8",fontSize:14,marginTop:6}}>Your money, clearly.</p>
         </div>
 
+        {mfaStep ? (
+          <MfaChallenge
+            onAuth={onAuth}
+            onCancel={()=>{ setMfaStep(false); setPass(""); setError(""); }}
+          />
+        ) : (
         <form key={mode} onSubmit={submit} className="slide-up"
           style={{background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.09)",borderRadius:20,padding:"36px 32px"}}>
           <h2 style={{...S.serif,color:"#F5F0E8",fontSize:22,fontWeight:400,marginBottom:24}}>
@@ -95,13 +185,16 @@ export function AuthScreen({onAuth}){
             </button>
           </div>
         </form>
+        )}
 
+        {!mfaStep && (
         <p style={{textAlign:"center",marginTop:20,fontSize:14,color:"#C8BAA8"}}>
           {mode==="login"?"Don't have an account? ":"Already have an account? "}
           <button type="button" onClick={toggle} style={{background:"none",border:"none",color:"#B8882A",fontSize:14,cursor:"pointer",fontWeight:600,padding:0}}>
             {mode==="login"?"Sign up":"Log in"}
           </button>
         </p>
+        )}
         <p style={{textAlign:"center",marginTop:16,fontSize:11,color:"rgba(200,186,168,.5)",lineHeight:1.5}}>
           By continuing you agree to our Privacy Policy.<br/>We never sell your data.
         </p>

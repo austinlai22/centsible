@@ -1,3 +1,16 @@
+import "dotenv/config";
+
+/*
+ * This script WRITES to whatever DATABASE_URL resolves to, and dotenv falls
+ * back to server/.env when the variable isn't already set — which is how a
+ * test run can silently target a real development database instead of a
+ * throwaway one. Printing the target makes that visible before anything is
+ * written rather than after.
+ */
+{
+  const u = new URL(process.env.DATABASE_URL);
+  console.log(`  target: ${u.hostname}:${u.port || 5432}${u.pathname}\n`);
+}
 import { query, pool } from "../db/client.js";
 import {
   PROVIDERS, addIdentity, listProviders, findUserByIdentity, removeIdentity,
@@ -10,6 +23,14 @@ const t = async (label, fn) => {
 };
 const eq = (a, b, m) => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m}: got ${JSON.stringify(a)}, want ${JSON.stringify(b)}`); };
 
+// Subs are unique per run. Hardcoding them made the suite pass once and then
+// fail on every re-run, because UNIQUE(provider, provider_uid) had correctly
+// bound the fixed sub to the first run's user — the constraint working exactly
+// as intended, presenting as a test failure.
+const RUN = Date.now();
+const SUB_A = `google-sub-a-${RUN}`;
+const SUB_B = `google-sub-b-${RUN}`;
+
 const mk = async (email, withPassword = true) => (await query(
   "INSERT INTO users (email, password_hash) VALUES ($1,$2) RETURNING *",
   [email, withPassword ? "$2b$12$x" : null]
@@ -21,19 +42,19 @@ await t("can create a user with NULL password_hash", async () => {
   if (g.password_hash !== null) throw new Error("expected null");
 });
 await t("link google identity", async () => {
-  await addIdentity(g.id, PROVIDERS.GOOGLE, "google-sub-12345", "g@gmail.com");
+  await addIdentity(g.id, PROVIDERS.GOOGLE, SUB_A, "g@gmail.com");
   eq(await listProviders(g.id), ["google"], "providers");
 });
 await t("found by (provider, sub)", async () => {
-  const u = await findUserByIdentity(PROVIDERS.GOOGLE, "google-sub-12345");
+  const u = await findUserByIdentity(PROVIDERS.GOOGLE, SUB_A);
   if (u?.id !== g.id) throw new Error("wrong user");
 });
 await t("NOT found by a different sub with the same email", async () => {
-  const u = await findUserByIdentity(PROVIDERS.GOOGLE, "attacker-sub-99999");
+  const u = await findUserByIdentity(PROVIDERS.GOOGLE, `attacker-sub-${RUN}`);
   if (u) throw new Error("matched on something other than sub — takeover risk");
 });
 await t("re-linking same provider is idempotent (no duplicate row)", async () => {
-  await addIdentity(g.id, PROVIDERS.GOOGLE, "google-sub-12345", "g@gmail.com");
+  await addIdentity(g.id, PROVIDERS.GOOGLE, SUB_A, "g@gmail.com");
   eq(await listProviders(g.id), ["google"], "providers after relink");
 });
 await t("removing the ONLY identity is refused", async () => {
@@ -46,7 +67,7 @@ console.log("\n=== account with both methods ===");
 const b = await mk(`b${Date.now()}@t.test`, true);
 await addIdentity(b.id, PROVIDERS.PASSWORD, b.id, b.email);
 await t("link google alongside password", async () => {
-  await addIdentity(b.id, PROVIDERS.GOOGLE, "google-sub-abcde", "b@gmail.com");
+  await addIdentity(b.id, PROVIDERS.GOOGLE, SUB_B, "b@gmail.com");
   eq((await listProviders(b.id)).sort(), ["google", "password"], "providers");
 });
 await t("can unlink google (password remains)", async () => {
@@ -63,7 +84,7 @@ console.log("\n=== cross-account safety ===");
 await t("one google sub cannot be linked to two accounts", async () => {
   const other = await mk(`o${Date.now()}@t.test`, true);
   try {
-    await addIdentity(other.id, PROVIDERS.GOOGLE, "google-sub-12345", "g@gmail.com");
+    await addIdentity(other.id, PROVIDERS.GOOGLE, SUB_A, "g@gmail.com");
   } catch (e) {
     if (/unique|duplicate/i.test(e.message)) return;
     throw e;

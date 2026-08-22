@@ -62,9 +62,41 @@ if (!ACCESS_SECRET || !REFRESH_SECRET) {
 
 // ─── Issue ────────────────────────────────────────────────────────────────────
 
+/**
+ * Token purposes.
+ *
+ * Every token carries an explicit purpose, and each verifier accepts exactly
+ * one. This is load-bearing rather than tidiness: the MFA-pending token is
+ * signed with the same secret and also carries `sub`, so without a purpose
+ * claim it would be a structurally valid access token — and handing one out
+ * *before* the second factor is checked would mean the whole MFA step could be
+ * skipped by sending the pending token straight to any protected route.
+ */
+const PURPOSE = Object.freeze({ ACCESS: "access", MFA_PENDING: "mfa_pending" });
+
+/** Short-lived: this only has to survive typing a 6-digit code. */
+const MFA_PENDING_EXP = "5m";
+
 /** Creates a signed access token containing the user's id. */
 export function signAccessToken(userId) {
-  return jwt.sign({ sub: userId }, ACCESS_SECRET, { expiresIn: ACCESS_EXP });
+  return jwt.sign({ sub: userId, purpose: PURPOSE.ACCESS }, ACCESS_SECRET, { expiresIn: ACCESS_EXP });
+}
+
+/**
+ * Issued after a correct password when MFA is enabled. Authorises exactly one
+ * thing — completing the MFA challenge — and nothing else.
+ */
+export function signMfaPendingToken(userId) {
+  return jwt.sign({ sub: userId, purpose: PURPOSE.MFA_PENDING }, ACCESS_SECRET, { expiresIn: MFA_PENDING_EXP });
+}
+
+/** Verifies an MFA-pending token. Throws unless the purpose matches exactly. */
+export function verifyMfaPendingToken(token) {
+  const payload = jwt.verify(token, ACCESS_SECRET);
+  if (payload.purpose !== PURPOSE.MFA_PENDING) {
+    throw Object.assign(new Error("Wrong token type"), { status: 401 });
+  }
+  return payload;
 }
 
 /**
@@ -92,9 +124,20 @@ export async function issueRefreshToken(userId, familyId = uuid()) {
 
 // ─── Verify ───────────────────────────────────────────────────────────────────
 
-/** Verifies an access token. Throws if invalid or expired. */
+/**
+ * Verifies an access token. Throws if invalid, expired, or not an access
+ * token.
+ *
+ * The purpose check is the half that stops an MFA-pending token — same secret,
+ * same `sub`, issued before the second factor was proven — from being replayed
+ * against protected routes as if the challenge had been completed.
+ */
 export function verifyAccessToken(token) {
-  return jwt.verify(token, ACCESS_SECRET); // { sub: userId, iat, exp }
+  const payload = jwt.verify(token, ACCESS_SECRET); // { sub, purpose, iat, exp }
+  if (payload.purpose !== PURPOSE.ACCESS) {
+    throw Object.assign(new Error("Wrong token type"), { status: 401 });
+  }
+  return payload;
 }
 
 /**
@@ -200,6 +243,23 @@ export function setTokenCookies(res, accessToken, refreshToken) {
 export function clearTokenCookies(res) {
   res.clearCookie("access_token",  baseCookieOpts);
   res.clearCookie("refresh_token", baseCookieOpts);
+  res.clearCookie("mfa_pending",   baseCookieOpts);
+}
+
+/**
+ * The half-authenticated state between password and second factor.
+ *
+ * Carried in an HttpOnly cookie for the same reason as the session tokens:
+ * returning it in the response body would put a credential somewhere XSS can
+ * read it. maxAge matches the token's own 5-minute expiry so a stale cookie
+ * can't linger after the challenge times out.
+ */
+export function setMfaPendingCookie(res, token) {
+  res.cookie("mfa_pending", token, { ...baseCookieOpts, maxAge: 5 * 60 * 1000 });
+}
+
+export function clearMfaPendingCookie(res) {
+  res.clearCookie("mfa_pending", baseCookieOpts);
 }
 
 // ─── Utility ──────────────────────────────────────────────────────────────────

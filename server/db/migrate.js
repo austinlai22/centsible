@@ -108,21 +108,54 @@ INSERT INTO auth_identities (user_id, provider, provider_uid, email)
 SELECT id, 'password', id::text, email FROM users WHERE password_hash IS NOT NULL
 ON CONFLICT DO NOTHING;
 
--- ── Planned (Phase 2 — not created yet) ───────────────────────────────────────
--- Recording the intended shape here so adding TOTP later is additive rather
--- than a rewrite, and so SMS can join without a second migration:
+-- ── user_mfa_factors ──────────────────────────────────────────────────────────
+-- One row per FACTOR rather than columns on users, which is what makes adding
+-- SMS after TOTP additive: a new factor type is a new row, not an ALTER plus a
+-- backfill plus a rewrite of every read path.
+CREATE TABLE IF NOT EXISTS user_mfa_factors (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type            TEXT        NOT NULL,   -- 'totp' | 'sms' (later)
+  -- AES-256-GCM ciphertext via lib/crypto.js. A TOTP secret is a bearer
+  -- credential: anyone holding it can mint valid codes forever, so a database
+  -- dump must not expose it. This is the same protection Plaid tokens get.
+  secret_enc      TEXT,
+  phone           TEXT,                   -- reserved for the 'sms' factor
+  -- NULL means enrolment was started but never proven. An unconfirmed factor
+  -- must never gate a login, otherwise abandoning the setup screen locks the
+  -- user out of their own account.
+  confirmed_at    TIMESTAMPTZ,
+  -- Highest time-step already accepted. A TOTP code stays valid for its whole
+  -- window, so without this an observed code can be replayed until it expires.
+  last_counter    BIGINT,
+  failed_attempts INTEGER     NOT NULL DEFAULT 0,
+  locked_until    TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_mfa_factors_user_id ON user_mfa_factors(user_id);
+
+-- ── mfa_recovery_codes ────────────────────────────────────────────────────────
+-- Single-use codes for when the authenticator device is lost. Not optional:
+-- without them, a dropped phone permanently locks someone out of their own
+-- financial history and there is no support desk to call.
 --
---   user_mfa_factors(
---     id, user_id, type TEXT ('totp'|'sms'), secret_enc TEXT, phone TEXT,
---     confirmed_at TIMESTAMPTZ, created_at, UNIQUE(user_id, type))
---   mfa_recovery_codes(id, user_id, code_hash TEXT, used_at TIMESTAMPTZ)
---
--- One row per FACTOR rather than columns on users is what makes "TOTP now,
--- SMS later" free: a second factor type is a new row, not an ALTER. secret_enc
--- reuses lib/crypto.js (AES-256-GCM), which today only protects Plaid tokens.
--- Recovery codes are hashed like passwords, never stored in the clear, and are
--- mandatory — without them a lost phone locks someone out of their finances
--- permanently.
+-- Stored as SHA-256, not bcrypt — the same reasoning as refresh tokens in
+-- lib/jwt.js. These are high-entropy random values, so bcrypt's work factor
+-- buys nothing, while its per-hash salt would force scanning every code the
+-- user owns instead of a single indexed lookup.
+CREATE TABLE IF NOT EXISTS mfa_recovery_codes (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  code_hash   TEXT        NOT NULL,
+  used_at     TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, code_hash)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfa_recovery_codes_user_id ON mfa_recovery_codes(user_id);
 
 -- ── refresh_tokens ────────────────────────────────────────────────────────────
 -- Stores hashed refresh tokens for rotation.
@@ -329,7 +362,7 @@ DECLARE
 BEGIN
   FOREACH t IN ARRAY ARRAY[
     'users','plaid_items','accounts','transactions',
-    'user_budgets','user_goals','rewards'
+    'user_budgets','user_goals','rewards','user_mfa_factors'
   ] LOOP
     EXECUTE format(
       'DROP TRIGGER IF EXISTS trg_%1$s_updated_at ON %1$s;

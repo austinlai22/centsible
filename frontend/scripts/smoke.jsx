@@ -10,6 +10,7 @@ import Goals from "../src/pages/Goals.jsx";
 import About from "../src/pages/About.jsx";
 import { RewardsContent } from "../src/pages/Rewards.jsx";
 import { DEMO_TRANSACTIONS, DEMO_GOALS, DEMO_BUDGETS } from "../src/constants.js";
+import { MfaSettings } from "../src/components/MfaSettings.jsx";
 
 let pass = 0, fail = 0;
 const noop = () => {};
@@ -70,6 +71,12 @@ t("Summary error state", <Summary profile={{}} transactions={[]} goals={[]} poin
       accounts={[]} loading={false} error="Network down" reload={noop}/>, "Retry");
 t("Summary relink banner", <Summary profile={{}} transactions={[]} goals={[]} points={0}
       accounts={[{id:"1",name:"Chase",item_status:"relink_required"}]} loading={false} error={null} reload={noop}/>, "Action needed");
+
+console.log("\n=== security surfaces ===");
+// useEffect does not run under renderToStaticMarkup, so this exercises the
+// pre-fetch branch: it must render a loading state rather than crash on a
+// null status object.
+t("MfaSettings renders before status loads", <MfaSettings/>);
 
 console.log(`\n  PASSED: ${pass}   FAILED: ${fail}`);
 if (fail) process.exit(1);
