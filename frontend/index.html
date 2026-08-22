@@ -2,33 +2,69 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+    <!--
+      viewport-fit=cover exposes env(safe-area-inset-*) so the fixed bottom tab
+      bar can clear the iPhone home indicator.
+
+      Note what is NOT here: maximum-scale=1 and user-scalable=no. Those
+      disabled pinch-zoom entirely, which fails WCAG 2.1 SC 1.4.4 (Resize
+      Text) and is a genuine barrier for low-vision users — on a personal
+      finance app where the content is numbers, that matters. iOS ignores
+      user-scalable=no from iOS 10 onward anyway; Android honours it, so it
+      was only ever breaking accessibility on Android.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#F5F0E8" />
+    <meta name="color-scheme" content="light" />
     <title>flo·w — your money, clearly</title>
     <meta name="description" content="A modern, ethical personal finance app. No ads, no data selling." />
-    <!--
-      Content-Security-Policy: this is the policy that actually matters for
-      this app — it governs what the BROWSER will allow this page to load.
-      Each allowance corresponds to something the app genuinely needs:
-        - fonts.googleapis.com / fonts.gstatic.com — Fraunces + DM Sans
-        - cdn.plaid.com                              — Plaid Link SDK script + iframe
-        - connect-src 'self' + your API origin       — fetch() calls to the backend
-      If you change VITE_API_URL to a different domain, add that domain to
-      connect-src below too, or fetch() calls to your API will be blocked
-      by the browser even though CORS on the backend would otherwise allow them.
 
-      ⚠️ The http://localhost:3001 below is a LOCAL DEV PLACEHOLDER.
-      Before building for production, replace it with your real deployed
-      API URL (the same value as VITE_API_URL in your production build).
+    <!--
+      Fonts are linked here rather than @import-ed from inside the app's
+      injected <style>. An @import inside a stylesheet cannot begin
+      downloading until that stylesheet itself has parsed, which serialises
+      the request behind the JS bundle; a <link> with preconnect starts the
+      handshake during initial HTML parse instead.
+      display=swap renders fallback text immediately rather than blocking.
     -->
-    <meta http-equiv="Content-Security-Policy" content="
-      default-src 'self';
-      script-src 'self' https://cdn.plaid.com;
-      connect-src 'self' https://cdn.plaid.com http://localhost:3001 https://*.plaid.com;
-      frame-src https://cdn.plaid.com;
-      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-      font-src 'self' https://fonts.gstatic.com;
-      img-src 'self' data:;
-    ">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Sans:wght@300;400;500;600&display=swap"
+    />
+
+    <!--
+      Content-Security-Policy — governs what the BROWSER will allow this page
+      to load. Each allowance maps to something the app genuinely needs:
+        fonts.googleapis.com / fonts.gstatic.com  → Fraunces + DM Sans
+        cdn.plaid.com                             → Plaid Link SDK + iframe
+        connect-src 'self' + your API origin      → fetch() calls to the backend
+
+      ⚠️ http://localhost:3001 below is a LOCAL DEV PLACEHOLDER. Before
+      building for production, replace it with your real deployed API URL
+      (the same value as VITE_API_URL in the production build) — otherwise
+      the browser blocks every API call even though backend CORS would allow
+      it, and the failure looks like a network error rather than a policy one.
+
+      frame-ancestors is deliberately absent: browsers ignore it in a <meta>
+      CSP. It is set as a real response header in nginx.conf instead.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        base-uri 'self';
+        form-action 'self';
+        object-src 'none';
+        script-src 'self' https://cdn.plaid.com;
+        connect-src 'self' https://cdn.plaid.com https://*.plaid.com http://localhost:3001;
+        frame-src https://cdn.plaid.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        font-src 'self' https://fonts.gstatic.com;
+        img-src 'self' data:;
+      "
+    />
   </head>
   <body>
     <div id="root"></div>

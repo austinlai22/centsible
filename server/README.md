@@ -127,11 +127,11 @@ server/
 | Threat | Mitigation |
 |--------|-----------|
 | Token theft via XSS | HttpOnly cookies — JS cannot read them |
-| CSRF | SameSite=Strict cookies (production) |
+| CSRF | JSON-only request bodies (forces a CORS preflight on every cross-origin mutation) + strict CORS origin allowlist. Note cookies are `SameSite=None` in production, which is required for a split frontend/API deployment — so SameSite is *not* what protects you here. `express.urlencoded` is intentionally disabled: form encoding is a CORS "simple request" that skips preflight, which made cross-site state changes possible. |
 | Brute-force login | 10 req/15min rate limit on auth endpoints |
 | DB dump exposing Plaid tokens | AES-256-GCM encryption at rest |
 | User enumeration on login | Identical error + constant-time bcrypt compare |
-| Stale refresh tokens | Rotation on every use; reuse detection revokes family |
+| Stale refresh tokens | Rotation on every use. Tokens are stored as SHA-256 hashes and looked up by index, so replaying a spent token is detected and revokes the whole family. (bcrypt is deliberately *not* used here — its per-hash salt makes lookup-by-hash impossible, which previously forced a global scan and made family revocation unimplementable.) |
 | Deleted-account tokens still working | `requireAuth` checks the user row still exists, not just the JWT |
 | Over-fetching / IDOR | Every DB query scoped to `req.userId`; `requireOwns`/`validateUUID` on path params |
 | Forged webhook events | JWS signature + body hash verification against Plaid's key API |

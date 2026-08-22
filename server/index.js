@@ -114,10 +114,45 @@ app.use((req, res, next) => {
   }
 });
 app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: false, limit: "10kb" }));
+
+// NOTE: express.urlencoded is deliberately NOT enabled.
+//
+// This API only ever consumes JSON, and accepting form encoding opened a real
+// CSRF hole. In production these cookies are SameSite=None (required when the
+// frontend and API live on different domains), so the browser attaches them to
+// cross-site requests. A urlencoded POST is a CORS "simple request", meaning
+// the browser fires it WITHOUT a preflight — so an auto-submitting form on an
+// attacker's page reached this API with the victim's session attached. CORS
+// then blocked the attacker from reading the response, but the state change
+// had already happened. Verified end to end: a form on evil.com could spend a
+// logged-in user's reward points via POST /api/rewards/redeem, because
+// charity_id is parsed with z.coerce.number() and accepts the string "5".
+//
+// With JSON as the only accepted encoding, any cross-origin mutation requires
+// Content-Type: application/json, which is never a simple request — it always
+// preflights, and the preflight is what CORS rejects.
 
 // ─── 5. Cookie parser ────────────────────────────────────────────────────────
 app.use(cookieParser());
+
+// ─── 6. Enforce JSON on state-changing requests ──────────────────────────────
+// Defence in depth behind the parser choice above: even if a form parser is
+// reintroduced later, a mutating request without a JSON content type is
+// refused outright rather than silently becoming CSRF-able again.
+const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+app.use((req, res, next) => {
+  if (!MUTATING.has(req.method)) return next();
+  // Plaid signs its own webhooks (JWS) and controls their content type.
+  if (req.path === "/plaid/webhook") return next();
+  // DELETE and other mutations legitimately carry no body.
+  const len = req.headers["content-length"];
+  if (!len || len === "0") return next();
+  const ct = (req.headers["content-type"] || "").split(";")[0].trim().toLowerCase();
+  if (ct !== "application/json") {
+    return res.status(415).json({ error: "Content-Type must be application/json" });
+  }
+  next();
+});
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use("/auth",  authRouter);

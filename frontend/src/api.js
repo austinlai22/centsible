@@ -249,6 +249,15 @@ export const authApi = {
   completeOnboarding: (answers) =>
     api.post("/auth/onboarding", answers),
 
+  /**
+   * Permanently deletes the account. The server cascades to transactions,
+   * budgets, goals, rewards, and linked Plaid items. The privacy policy
+   * promises this route exists in the UI — it previously only existed on the
+   * server, with nothing calling it.
+   */
+  deleteAccount: () =>
+    api.delete("/auth/me"),
+
   refresh: () =>
     api.post("/auth/refresh", {}),
 };
