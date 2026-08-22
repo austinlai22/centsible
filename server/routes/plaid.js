@@ -68,9 +68,15 @@ router.post("/create-link-token", async (req, res, next) => {
       products:     [Products.Transactions],
       country_codes:[CountryCode.Us],
       language:     "en",
-      // Webhook URL — Plaid will POST here when new transactions are available.
-      // Replace with your real public URL in production.
-      webhook: process.env.PLAID_WEBHOOK_URL || "https://your-domain.com/plaid/webhook",
+      // Webhook URL — Plaid POSTs here when new transactions are available.
+      // Omitted entirely when unset, rather than falling back to a placeholder
+      // domain: registering https://your-domain.com/plaid/webhook makes Plaid
+      // deliver every event for this Item to a host you don't control, and the
+      // resulting silence looks identical to "webhooks aren't working yet."
+      // With no webhook registered, sync still works on demand via POST
+      // /plaid/sync — which is the right setup for local sandbox testing
+      // without ngrok.
+      ...(process.env.PLAID_WEBHOOK_URL ? { webhook: process.env.PLAID_WEBHOOK_URL } : {}),
     });
 
     // link_token is short-lived (30 min) and can only be used once —

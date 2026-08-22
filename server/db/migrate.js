@@ -48,9 +48,14 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS housing_cost    NUMERIC(12,2);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS spending_style  TEXT;
 
 -- ── users: contact details ───────────────────────────────────────────────────
--- Backs the phone/address fields in About → Personal info. These were present
--- in the UI long before this column existed, so PUT /auth/me accepted them,
--- reported success, and dropped them on the floor.
+-- Backs the phone field in About → Personal info. Phone was present in the UI
+-- long before this column existed, so PUT /auth/me accepted it, reported
+-- success, and dropped it on the floor.
+--
+-- No address column: collecting a home address has no stated purpose in this
+-- app yet, and the privacy policy commits to collecting only what is needed.
+-- Add it when there is a real use (KYC, card issuance), together with the
+-- matching privacy-policy disclosure.
 --
 -- phone is stored as the user typed it rather than normalised to E.164. If it
 -- later becomes an MFA delivery channel or a login identifier it should be
@@ -58,7 +63,6 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS spending_style  TEXT;
 -- cannot be looked up reliably, and two spellings of one number would create
 -- two accounts.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS phone           TEXT;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS address         TEXT;
 
 -- ── refresh_tokens ────────────────────────────────────────────────────────────
 -- Stores hashed refresh tokens for rotation.

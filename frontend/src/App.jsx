@@ -105,7 +105,6 @@ export default function App(){
     name:    authUser.name || "",
     email:   authUser.email || "",
     phone:   authUser.phone || "",
-    address: authUser.address || "",
     income:  authUser.income,
     goal:    authUser.financial_goal,
     housing: authUser.housing_cost,

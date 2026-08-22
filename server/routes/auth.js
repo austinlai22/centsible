@@ -206,7 +206,6 @@ const UpdateMeSchema = z.object({
   // phone number, and leave real verification to an SMS round-trip if this
   // ever becomes an MFA channel.
   phone:   z.string().max(32).regex(/^[0-9+()\-.\s]*$/, "Phone can only contain digits and + ( ) - . spaces").optional(),
-  address: z.string().max(300).optional(),
 }).refine(d => Object.keys(d).length > 0, { message: "Provide at least one field to update" });
 
 router.put("/me", requireAuth, async (req, res, next) => {
@@ -215,7 +214,7 @@ router.put("/me", requireAuth, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.errors[0].message });
     }
-    const { name, email, phone, address } = parsed.data;
+    const { name, email, phone } = parsed.data;
 
     // Build update dynamically — only touch provided fields
     const sets   = [];
@@ -236,14 +235,10 @@ router.put("/me", requireAuth, async (req, res, next) => {
     // Presence-checked rather than truthiness-checked, unlike name/email
     // above: "" is how the client clears an optional field, and a truthiness
     // check would silently ignore it — leaving the user unable to remove a
-    // phone number or address once saved. Stored as NULL rather than "".
+    // phone number once saved. Stored as NULL rather than "".
     if ("phone" in parsed.data) {
       params.push(phone.trim() || null);
       sets.push(`phone = $${params.length}`);
-    }
-    if ("address" in parsed.data) {
-      params.push(address.trim() || null);
-      sets.push(`address = $${params.length}`);
     }
 
     if (sets.length === 0) {

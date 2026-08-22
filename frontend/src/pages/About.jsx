@@ -16,10 +16,9 @@ export default function About({
   const [section,setSection]=useState(null);
   const {cur,prog}=getLevelInfo(points);
   const [pForm,setPForm]=useState({
-    name:    profile.name    || "",
-    email:   profile.email   || "",
-    phone:   profile.phone   || "",
-    address: profile.address || "",
+    name:  profile.name  || "",
+    email: profile.email || "",
+    phone: profile.phone || "",
   });
   const [saving,setSaving]=useState(false);
   const [saveErr,setSaveErr]=useState("");
@@ -34,15 +33,13 @@ export default function About({
     setSaving(true);setSaveErr("");
     try{
       const res=await api.put("/auth/me",{
-        name:pForm.name, email:pForm.email,
-        phone:pForm.phone, address:pForm.address,
+        name:pForm.name, email:pForm.email, phone:pForm.phone,
       });
       // setProfile is really setAuthUser — spreading `p` preserves
       // onboarded_at and every other server field.
       setProfile(p=>({
         ...p,
-        name:res.user.name, email:res.user.email,
-        phone:res.user.phone, address:res.user.address,
+        name:res.user.name, email:res.user.email, phone:res.user.phone,
       }));
       close();
     }catch(e){setSaveErr(e.message||"Failed to save");}
@@ -94,8 +91,7 @@ export default function About({
 
         <Card style={{padding:"0 20px"}}>
           <SecLabel label="My Profile"/>
-          <MenuRow icon="👤" label="Personal info" sub={profile.email||"Add your email"} onClick={open("profile")}/>
-          <MenuRow icon="📍" label="Address" sub={profile.address||"Add your address"} onClick={open("profile")} noBorder/>
+          <MenuRow icon="👤" label="Personal info" sub={profile.email||"Add your email"} onClick={open("profile")} noBorder/>
         </Card>
 
         <Card style={{padding:"0 20px"}}>
@@ -150,10 +146,7 @@ export default function About({
             <Field label="Phone" htmlFor="p-phone">
               <input id="p-phone" value={pForm.phone} onChange={e=>setPForm(p=>({...p,phone:e.target.value}))} style={S.input} type="tel" inputMode="tel" autoComplete="tel" placeholder="+1 555 123 4567"/>
             </Field>
-            <Field label="Home address" htmlFor="p-address">
-              <textarea id="p-address" value={pForm.address} onChange={e=>setPForm(p=>({...p,address:e.target.value}))} rows={3} autoComplete="street-address"
-                style={{...S.input,resize:"vertical",lineHeight:1.5}} placeholder="123 Main St, Springfield, IL 62704"/>
-            </Field>
+
             {saveErr&&<p role="alert" style={{fontSize:13,color:"var(--rose)"}}>{saveErr}</p>}
             <button onClick={saveProfile} disabled={saving} style={S.darkBtn({marginTop:4,opacity:saving?.6:1,minHeight:46})}>
               {saving?"Saving…":"Save changes"}
