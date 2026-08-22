@@ -64,6 +64,66 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS spending_style  TEXT;
 -- two accounts.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS phone           TEXT;
 
+-- ── auth_identities ───────────────────────────────────────────────────────────
+-- Separates IDENTITY (how you prove who you are) from ACCOUNT (the users row),
+-- so one account can be reached by several sign-in methods: email+password
+-- today, Google tomorrow, both at once after linking.
+--
+-- password_hash must become nullable for this to work at all: a Google-only
+-- account has no password, and NOT NULL would make it impossible to insert.
+-- Note that bcrypt.compare(x, NULL) throws, so every read path has to treat a
+-- null hash as "no password set" rather than passing it straight to bcrypt —
+-- routes/auth.js does this via its dummy-hash fallback, which doubles as the
+-- constant-time defence against user enumeration.
+ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
+
+CREATE TABLE IF NOT EXISTS auth_identities (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  provider      TEXT        NOT NULL,   -- 'password' | 'google'
+  -- For 'google' this is the OIDC "sub" claim, NOT the email. sub is stable
+  -- for the lifetime of the Google account; an email address can be changed
+  -- or reassigned, so keying on it would let one person inherit another's
+  -- account.
+  provider_uid  TEXT        NOT NULL,
+  -- Email as asserted by that provider at link time, kept for display and for
+  -- spotting drift from users.email. Never used to match identities.
+  email         TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_used_at  TIMESTAMPTZ,
+  -- One provider account maps to exactly one flo·w account.
+  UNIQUE (provider, provider_uid)
+);
+
+CREATE INDEX IF NOT EXISTS idx_auth_identities_user_id ON auth_identities(user_id);
+-- ...and one flo·w account holds at most one identity per provider, so
+-- "link Google" is idempotent rather than accumulating duplicate rows.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_auth_identities_user_provider
+  ON auth_identities (user_id, provider);
+
+-- Backfill: every existing password account gets its 'password' identity, so
+-- code can treat identities as the single source of truth from day one rather
+-- than special-casing "legacy users with no rows". Idempotent on re-run.
+INSERT INTO auth_identities (user_id, provider, provider_uid, email)
+SELECT id, 'password', id::text, email FROM users WHERE password_hash IS NOT NULL
+ON CONFLICT DO NOTHING;
+
+-- ── Planned (Phase 2 — not created yet) ───────────────────────────────────────
+-- Recording the intended shape here so adding TOTP later is additive rather
+-- than a rewrite, and so SMS can join without a second migration:
+--
+--   user_mfa_factors(
+--     id, user_id, type TEXT ('totp'|'sms'), secret_enc TEXT, phone TEXT,
+--     confirmed_at TIMESTAMPTZ, created_at, UNIQUE(user_id, type))
+--   mfa_recovery_codes(id, user_id, code_hash TEXT, used_at TIMESTAMPTZ)
+--
+-- One row per FACTOR rather than columns on users is what makes "TOTP now,
+-- SMS later" free: a second factor type is a new row, not an ALTER. secret_enc
+-- reuses lib/crypto.js (AES-256-GCM), which today only protects Plaid tokens.
+-- Recovery codes are hashed like passwords, never stored in the clear, and are
+-- mandatory — without them a lost phone locks someone out of their finances
+-- permanently.
+
 -- ── refresh_tokens ────────────────────────────────────────────────────────────
 -- Stores hashed refresh tokens for rotation.
 -- A token is invalidated by deleting its row (logout) or replacing it (rotation).

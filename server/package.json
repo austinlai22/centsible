@@ -8,7 +8,8 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "db:migrate": "node db/migrate.js",
-    "db:seed": "node db/seed.js"
+    "db:seed": "node db/seed.js",
+    "test:identities": "node scripts/test-identities.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
