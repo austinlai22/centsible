@@ -28,6 +28,19 @@ import rewardsRouter from "./routes/rewards.js";
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
+// ─── 0. Trust proxy ──────────────────────────────────────────────────────────
+// Railway, Render, Fly, and any nginx/Caddy reverse proxy terminate TLS and
+// forward the real client IP in X-Forwarded-For. Without this, req.ip is the
+// PROXY's IP for every request — so all users share a single rate-limit
+// bucket and the 10-per-15min auth limiter locks out the entire app after ten
+// login attempts total. express-rate-limit v7 also refuses to start when it
+// sees X-Forwarded-For with trust proxy unset.
+//
+// `1` = trust exactly one proxy hop, which is what all the platforms above
+// put in front of you. Do NOT use `true` (trust everything) — that lets a
+// client spoof X-Forwarded-For and evade rate limiting entirely.
+app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS ?? 1));
+
 // ─── 1. Helmet — secure HTTP headers ─────────────────────────────────────────
 // Sets X-Frame-Options, X-Content-Type-Options, Referrer-Policy,
 // Strict-Transport-Security, and more — all of which are meaningful for a
@@ -63,9 +76,14 @@ app.use(cors({
 // you. The webhook endpoint doesn't need this protection anyway — it's
 // already gated by JWS signature verification (verifyPlaidWebhook), which is
 // a stronger guarantee than "fewer than 100 requests" could ever provide.
+//
+// 600/15min (~40/min) rather than 100: a single page load fans out to
+// /auth/me, /plaid/transactions, /plaid/accounts, /api/goals, /api/budgets,
+// and /api/rewards + /api/rewards/history — seven requests before the user
+// touches anything. At 100 a normal session hit the wall in ~14 page loads.
 const globalLimiter = rateLimit({
   windowMs:  15 * 60 * 1000, // 15 minutes
-  max:       100,
+  max:       Number(process.env.RATE_LIMIT_MAX ?? 600),
   standardHeaders: true,
   legacyHeaders:   false,
   message: { error: "Too many requests — please try again later." },
@@ -83,6 +101,12 @@ app.use((req, res, next) => {
     req.on("end", () => {
       req.rawBody = data;
       try { req.body = JSON.parse(data); } catch (_) { req.body = {}; }
+      // body-parser only skips a request when req._body is truthy. Setting
+      // req.body alone is not enough: express.json() below would still try to
+      // re-read the stream, and because setEncoding("utf8") was called above,
+      // raw-body throws "stream encoding should not be set" → every Plaid
+      // webhook 500s before verifyPlaidWebhook ever runs.
+      req._body = true;
       next();
     });
   } else {

@@ -139,8 +139,14 @@ const GoalCreateSchema = z.object({
 
 const GoalUpdateSchema = GoalCreateSchema.partial();
 
+// Keys are constrained to VALID_CATEGORIES rather than any string: with a
+// free-form key a client could write budgets under categories the app has no
+// concept of ("Yacht": 90000). Those rows are invisible in the UI (which
+// iterates CATEGORY_META, not the response) but still count toward the totals
+// the server returns, so the budget hero would disagree with the sum of the
+// visible category cards and nothing on screen would explain why.
 const BudgetUpsertSchema = z.record(
-  z.string().min(1).max(60),   // category name
+  z.enum(VALID_CATEGORIES),
   z.number().min(0)            // amount — 0 effectively removes the budget
 ).refine(obj => Object.keys(obj).length > 0, { message: "Provide at least one category" });
 

@@ -193,7 +193,14 @@ router.get("/transactions", async (req, res, next) => {
          currency_code,
          COALESCE(merchant_name, description) AS desc,
          category,
-         date,
+         -- TO_CHAR, not the bare DATE column: node-postgres hydrates DATE
+         -- into a JS Date, which res.json() then serialises as a full ISO
+         -- timestamp ("2025-05-18T00:00:00.000Z"). The UI renders t.date raw
+         -- and feeds it to <input type="date">, which only accepts
+         -- YYYY-MM-DD — so bank rows showed a timestamp in the list and blanked
+         -- the date field on edit. routes/data.js already returns YYYY-MM-DD
+         -- for manual rows; this makes both sources agree.
+         TO_CHAR(date, 'YYYY-MM-DD') AS date,
          pending,
          source
        FROM transactions
@@ -218,6 +225,11 @@ router.get("/accounts", async (req, res, next) => {
     const { rows } = await query(
       `SELECT
          a.plaid_account_id  AS id,
+         -- The UI's "Remove" button calls DELETE /plaid/items/:itemId, which
+         -- runs validateUUID. Without this column the frontend fell back to
+         -- a.id (a Plaid account string, not a UUID) and every removal
+         -- returned 400 Invalid ID format.
+         pi.id               AS plaid_item_id,
          a.name,
          a.official_name,
          a.type,

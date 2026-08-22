@@ -24,9 +24,19 @@ export const pool = new Pool({
   max:              10,
   idleTimeoutMillis:   30_000,
   connectionTimeoutMillis: 2_000,
-  // Enforce SSL in production; skip for local dev unless you've set up a cert
+  // Enforce SSL in production; skip for local dev unless you've set up a cert.
+  //
+  // rejectUnauthorized defaults to strict (validates the server cert), but is
+  // overridable because several managed providers terminate TLS with a cert
+  // Node won't validate out of the box — Supabase's connection pooler, Heroku
+  // Postgres, and some Render/Fly setups all present self-signed or
+  // intermediate-only chains. Strict verification there fails at startup with
+  // "self signed certificate in certificate chain", which reads like the
+  // database is down rather than a cert-chain issue.
+  //
+  // Prefer supplying the provider's CA via PGSSLROOTCERT over disabling this.
   ssl: process.env.NODE_ENV === "production"
-    ? { rejectUnauthorized: true }   // strict — validates the server cert
+    ? { rejectUnauthorized: process.env.PGSSL_REJECT_UNAUTHORIZED !== "false" }
     : false,
 });
 

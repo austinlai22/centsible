@@ -71,7 +71,9 @@ export async function syncItem(item) {
             amount, currency_code, description, merchant_name,
             category, plaid_category, date, pending)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-         ON CONFLICT (plaid_transaction_id) DO UPDATE SET
+         ON CONFLICT (plaid_transaction_id)
+           WHERE plaid_transaction_id IS NOT NULL
+         DO UPDATE SET
            amount       = EXCLUDED.amount,
            description  = EXCLUDED.description,
            merchant_name= EXCLUDED.merchant_name,
@@ -108,7 +110,9 @@ export async function syncItem(item) {
             amount, currency_code, description, merchant_name,
             category, plaid_category, date, pending)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-         ON CONFLICT (plaid_transaction_id) DO UPDATE SET
+         ON CONFLICT (plaid_transaction_id)
+           WHERE plaid_transaction_id IS NOT NULL
+         DO UPDATE SET
            amount       = EXCLUDED.amount,
            description  = EXCLUDED.description,
            merchant_name= EXCLUDED.merchant_name,

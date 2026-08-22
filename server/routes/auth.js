@@ -28,6 +28,7 @@ import {
   signAccessToken,
   issueRefreshToken,
   rotateRefreshToken,
+  revokeRefreshToken,
   setTokenCookies,
   clearTokenCookies,
 }                      from "../lib/jwt.js";
@@ -165,25 +166,13 @@ router.post("/logout", async (req, res, next) => {
   try {
     const rawRefreshToken = req.cookies?.refresh_token;
     if (rawRefreshToken) {
-      // Find and revoke the matching token row.
-      // We scan recent non-revoked tokens and bcrypt-compare to find the match.
-      // Best-effort — if not found (already expired/revoked), we still clear cookies.
+      // Direct indexed revoke by token hash. The previous version scanned the
+      // 50 newest tokens across ALL users and bcrypt-compared each one, so on
+      // a busy server a logout could simply fail to find its own token and
+      // leave a valid refresh token alive in the DB after the user logged out.
       try {
-        const { rows } = await query(
-          `SELECT id, token_hash FROM refresh_tokens
-           WHERE revoked = FALSE AND expires_at > NOW()
-           ORDER BY created_at DESC LIMIT 50`
-        );
-        for (const row of rows) {
-          if (await bcrypt.compare(rawRefreshToken, row.token_hash)) {
-            await query(
-              "UPDATE refresh_tokens SET revoked = TRUE WHERE id = $1",
-              [row.id]
-            );
-            break;
-          }
-        }
-      } catch (_) { /* already invalid — ignore */ }
+        await revokeRefreshToken(rawRefreshToken);
+      } catch (_) { /* already invalid — cookies still get cleared below */ }
     }
     clearTokenCookies(res);
     return res.json({ ok: true });

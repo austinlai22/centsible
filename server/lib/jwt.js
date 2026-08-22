@@ -24,9 +24,32 @@
  */
 
 import jwt        from "jsonwebtoken";
-import bcrypt     from "bcryptjs";
 import { v4 as uuid } from "uuid";
+import crypto     from "crypto";
 import { query }  from "../db/client.js";
+
+/**
+ * Refresh tokens are hashed with SHA-256, not bcrypt.
+ *
+ * bcrypt's cost is designed to slow down guessing of LOW-entropy secrets
+ * (human passwords). A refresh token here is 256 bits of CSPRNG output —
+ * brute-forcing it is infeasible regardless of hash speed, so bcrypt buys
+ * nothing and costs something important: because a bcrypt hash embeds a
+ * random salt, you cannot look a token UP by its hash. The previous
+ * implementation worked around that by fetching the 50 newest active tokens
+ * ACROSS ALL USERS and comparing one by one, which meant (a) any user whose
+ * token fell outside that global window got a spurious 401 on a perfectly
+ * valid token once the app had >50 concurrent sessions, and (b) reuse
+ * detection was impossible, because a miss gave you no row and therefore no
+ * family to revoke.
+ *
+ * SHA-256 is deterministic, so token_hash is a direct indexed lookup: O(1),
+ * correct at any scale, and a miss-vs-revoked-hit distinction that makes real
+ * theft detection possible (see rotateRefreshToken).
+ */
+function hashToken(raw) {
+  return crypto.createHash("sha256").update(raw).digest("hex");
+}
 
 const ACCESS_SECRET  = process.env.JWT_ACCESS_SECRET;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
@@ -45,12 +68,15 @@ export function signAccessToken(userId) {
 }
 
 /**
- * Creates a raw refresh token (UUID), stores its bcrypt hash in the DB,
- * and returns the raw token for the cookie.
+ * Creates a raw refresh token, stores its SHA-256 hash in the DB, and returns
+ * the raw token for the cookie.
+ *
+ * 32 random bytes rather than a UUID: uuid v4 carries 122 bits of entropy and
+ * a recognisable structure, randomBytes(32) gives a full 256 with none.
  */
 export async function issueRefreshToken(userId, familyId = uuid()) {
-  const raw  = uuid();
-  const hash = await bcrypt.hash(raw, 10);
+  const raw  = crypto.randomBytes(32).toString("base64url");
+  const hash = hashToken(raw);
 
   // Parse expiry string into a real Date for the DB
   const expiresAt = new Date(Date.now() + parseDuration(REFRESH_EXP));
@@ -72,35 +98,47 @@ export function verifyAccessToken(token) {
 }
 
 /**
- * Validates a raw refresh token:
- *   1. Looks up all non-revoked tokens for the user and bcrypt-compares
- *   2. Checks expiry
- *   3. If valid: deletes the used token and issues a new one (rotation)
- *   4. If token was already used (not found): revokes the whole family (theft detection)
+ * Validates and rotates a raw refresh token.
  *
- * Returns: { userId, newRawToken, newFamilyId }
+ *   1. Direct indexed lookup on the SHA-256 hash
+ *   2. Row missing entirely      → 401 (never issued, or already pruned)
+ *   3. Row present but REVOKED   → replay of a spent token. This is the
+ *                                  signal that a token was stolen: the
+ *                                  legitimate client already rotated it, so
+ *                                  whoever is presenting it now has a copy.
+ *                                  Revoke the entire family, which logs out
+ *                                  both the attacker and the victim's chain.
+ *   4. Row present but EXPIRED   → 401, no family revocation (benign)
+ *   5. Otherwise                 → revoke this token, issue its successor in
+ *                                  the same family
+ *
+ * Returns: { userId, newRaw, familyId }
  */
 export async function rotateRefreshToken(rawToken) {
-  // Find all active (non-revoked, non-expired) tokens and compare hashes
   const { rows } = await query(
-    `SELECT * FROM refresh_tokens
-     WHERE revoked = FALSE AND expires_at > NOW()
-     ORDER BY created_at DESC
-     LIMIT 50`  // bounded scan — no full table scan
+    "SELECT * FROM refresh_tokens WHERE token_hash = $1",
+    [hashToken(rawToken)]
   );
-
-  let matched = null;
-  for (const row of rows) {
-    if (await bcrypt.compare(rawToken, row.token_hash)) {
-      matched = row;
-      break;
-    }
-  }
+  const matched = rows[0];
 
   if (!matched) {
-    // Token not found among active tokens.
-    // It may have been used before — attempt family revocation.
-    // (We can't identify the family without the match, so this is best-effort.)
+    throw Object.assign(new Error("Invalid or expired refresh token"), { status: 401 });
+  }
+
+  if (matched.revoked) {
+    // Reuse detected. Revoking the family is what makes rotation actually
+    // worth doing — without it a stolen token just races the real user.
+    await query(
+      "UPDATE refresh_tokens SET revoked = TRUE WHERE family_id = $1 AND revoked = FALSE",
+      [matched.family_id]
+    );
+    console.warn(
+      `[auth] Refresh token reuse detected for user ${matched.user_id} — family ${matched.family_id} revoked`
+    );
+    throw Object.assign(new Error("Invalid or expired refresh token"), { status: 401 });
+  }
+
+  if (new Date(matched.expires_at) <= new Date()) {
     throw Object.assign(new Error("Invalid or expired refresh token"), { status: 401 });
   }
 
@@ -110,6 +148,21 @@ export async function rotateRefreshToken(rawToken) {
   // Issue replacement in the same family
   const { raw: newRaw, familyId } = await issueRefreshToken(matched.user_id, matched.family_id);
   return { userId: matched.user_id, newRaw, familyId };
+}
+
+/**
+ * Revokes a single refresh token by its raw value — used by logout.
+ *
+ * Only this token is revoked, not the family: logging out on your phone
+ * should not sign you out on your laptop. Silently no-ops if the token is
+ * unknown or already revoked, so logout always succeeds from the caller's
+ * point of view.
+ */
+export async function revokeRefreshToken(rawToken) {
+  await query(
+    "UPDATE refresh_tokens SET revoked = TRUE WHERE token_hash = $1 AND revoked = FALSE",
+    [hashToken(rawToken)]
+  );
 }
 
 // ─── Cookie helpers ───────────────────────────────────────────────────────────

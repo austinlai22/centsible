@@ -180,6 +180,24 @@ CREATE TABLE IF NOT EXISTS user_budgets (
   UNIQUE (user_id, category, month)
 );
 
+-- ── user_budgets: period column ───────────────────────────────────────────────
+-- routes/data.js stores each category under exactly one period:
+--   'monthly'  → month holds the first day of a calendar month (2025-05-01)
+--   'semester' → month holds the semester's start date       (2025-08-15)
+-- Without this column every GET/PUT /api/budgets fails with a
+-- 'column "period" does not exist' error, which the frontend silently
+-- swallows by falling back to DEMO_BUDGETS — budgets appear to work in the
+-- UI but never actually persist.
+ALTER TABLE user_budgets ADD COLUMN IF NOT EXISTS period TEXT NOT NULL DEFAULT 'monthly';
+
+-- The original UNIQUE (user_id, category, month) predates the period split.
+-- It has to widen to include period, otherwise a category could never hold
+-- both a monthly rate and a semester total on the same date. Postgres names
+-- the inline constraint user_budgets_user_id_category_month_key.
+ALTER TABLE user_budgets DROP CONSTRAINT IF EXISTS user_budgets_user_id_category_month_key;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_budgets_unique
+  ON user_budgets (user_id, category, month, period);
+
 CREATE INDEX IF NOT EXISTS idx_user_budgets_user_id ON user_budgets(user_id, month);
 
 -- ── user_goals ────────────────────────────────────────────────────────────────
