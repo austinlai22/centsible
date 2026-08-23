@@ -29,19 +29,19 @@ function RecoveryCodes({ codes, onDone }) {
 
   return (
     <div style={{...S.col, gap:14}}>
-      <div style={{background:"var(--gold-light)",border:"1px solid var(--gold)",borderRadius:12,padding:"14px 16px"}}>
-        <p style={{fontSize:14,fontWeight:600,color:"var(--gold)",marginBottom:4}}>Save these now</p>
-        <p style={{fontSize:13,color:"var(--gold)",lineHeight:1.55}}>
+      <div style={{background:"var(--warning-bg)",border:"1px solid var(--warning-line)",borderRadius:12,padding:"14px 16px"}}>
+        <p style={{fontSize:14,fontWeight:600,color:"var(--warning)",marginBottom:4}}>Save these now</p>
+        <p style={{fontSize:13,color:"var(--warning)",lineHeight:1.55}}>
           This is the only time these codes are shown. Each one works once, and they're
           the only way back into your account if you lose your phone.
         </p>
       </div>
-      <div style={{background:"var(--sand)",borderRadius:12,padding:"16px",display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:"8px 16px"}}>
+      <div style={{background:"var(--line)",borderRadius:12,padding:"16px",display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:"8px 16px"}}>
         {codes.map(c => (
           <code key={c} style={{fontFamily:"ui-monospace,SFMono-Regular,Menlo,monospace",fontSize:14,letterSpacing:".05em",userSelect:"all"}}>{c}</code>
         ))}
       </div>
-      <button onClick={copy} style={S.sandBtn({padding:"12px",borderRadius:10,fontSize:14,minHeight:44})}>
+      <button onClick={copy} style={S.quietBtn({padding:"12px",borderRadius:10,fontSize:14,minHeight:44})}>
         {copied ? "✓ Copied" : "Copy all codes"}
       </button>
       <button onClick={onDone} style={S.darkBtn({minHeight:46})}>I've saved them</button>
@@ -110,7 +110,7 @@ export function MfaSettings() {
   if (loading) return <div style={{padding:"18px 0"}}><Spinner/></div>;
 
   const err = error && (
-    <p role="alert" style={{fontSize:13,color:"var(--rose)",marginTop:4}}>{error}</p>
+    <p role="alert" style={{fontSize:13,color:"var(--danger)",marginTop:4}}>{error}</p>
   );
 
   if (step === "codes" && codes) {
@@ -135,12 +135,12 @@ export function MfaSettings() {
                style={{borderRadius:12,background:"#fff",maxWidth:"100%",height:"auto"}}/>
         </div>
         <button onClick={()=>setShowSecret(v=>!v)}
-          style={{background:"none",border:"none",color:"var(--sky)",fontSize:12,cursor:"pointer",padding:0,marginBottom:12}}>
+          style={{background:"none",border:"none",color:"var(--info)",fontSize:12,cursor:"pointer",padding:0,marginBottom:12}}>
           {showSecret ? "Hide setup key" : "Can't scan? Enter a key instead"}
         </button>
         {showSecret && (
           <p style={{fontFamily:"ui-monospace,SFMono-Regular,Menlo,monospace",fontSize:13,wordBreak:"break-all",
-                     background:"var(--sand)",borderRadius:8,padding:"10px 12px",marginBottom:14,userSelect:"all"}}>
+                     background:"var(--line)",borderRadius:8,padding:"10px 12px",marginBottom:14,userSelect:"all"}}>
             {enrol.secret}
           </p>
         )}
@@ -154,7 +154,7 @@ export function MfaSettings() {
         {err}
         <div style={{...S.row,gap:10,marginTop:14}}>
           <button onClick={()=>{setStep("idle");setEnrol(null);setToken("");setError("");}}
-            style={S.sandBtn({flex:1,padding:"12px",borderRadius:10,fontSize:14,minHeight:46})}>Cancel</button>
+            style={S.quietBtn({flex:1,padding:"12px",borderRadius:10,fontSize:14,minHeight:46})}>Cancel</button>
           <button onClick={confirm} disabled={busy||token.length!==6}
             style={S.darkBtn({flex:1,opacity:busy||token.length!==6?.6:1,minHeight:46})}>
             {busy ? "Verifying…" : "Turn on"}
@@ -178,9 +178,9 @@ export function MfaSettings() {
         {err}
         <div style={{...S.row,gap:10,marginTop:14}}>
           <button onClick={()=>{setStep("idle");setPassword("");setError("");}}
-            style={S.sandBtn({flex:1,padding:"12px",borderRadius:10,fontSize:14,minHeight:46})}>Cancel</button>
+            style={S.quietBtn({flex:1,padding:"12px",borderRadius:10,fontSize:14,minHeight:46})}>Cancel</button>
           <button onClick={turnOff} disabled={busy||!password}
-            style={S.btn("var(--rose)","#fff",{flex:1,padding:"13px",borderRadius:12,fontSize:14,opacity:busy||!password?.6:1,minHeight:46})}>
+            style={S.btn("var(--danger)","#fff",{flex:1,padding:"13px",borderRadius:12,fontSize:14,opacity:busy||!password?.6:1,minHeight:46})}>
             {busy ? "Turning off…" : "Turn off"}
           </button>
         </div>
@@ -194,7 +194,7 @@ export function MfaSettings() {
       <div style={{...S.between,gap:12,marginBottom:8}}>
         <div style={{minWidth:0}}>
           <p style={{fontSize:15,fontWeight:600}}>Two-factor authentication</p>
-          <p style={{fontSize:12,color:status?.enabled?"var(--sage)":"var(--muted)",marginTop:2}}>
+          <p style={{fontSize:12,color:status?.enabled?"var(--success)":"var(--muted)",marginTop:2}}>
             {status?.enabled ? "✓ On — authenticator app" : "Off"}
           </p>
         </div>
@@ -206,7 +206,7 @@ export function MfaSettings() {
       </p>
 
       {status?.enabled && (
-        <p style={{fontSize:12,color: status.recoveryCodesRemaining <= 2 ? "var(--rose)" : "var(--muted)", marginBottom:14}}>
+        <p style={{fontSize:12,color: status.recoveryCodesRemaining <= 2 ? "var(--danger)" : "var(--muted)", marginBottom:14}}>
           {status.recoveryCodesRemaining} recovery {status.recoveryCodesRemaining === 1 ? "code" : "codes"} left
           {status.recoveryCodesRemaining <= 2 && " — generate a new set soon"}
         </p>
@@ -225,11 +225,11 @@ export function MfaSettings() {
           </Field>
           <div style={{...S.row,gap:10}}>
             <button onClick={regenerate} disabled={busy||!password}
-              style={S.sandBtn({flex:1,padding:"12px",borderRadius:10,fontSize:13,minHeight:44,opacity:busy||!password?.6:1})}>
+              style={S.quietBtn({flex:1,padding:"12px",borderRadius:10,fontSize:13,minHeight:44,opacity:busy||!password?.6:1})}>
               New recovery codes
             </button>
             <button onClick={()=>{setStep("disable");setError("");}}
-              style={S.sandBtn({flex:1,padding:"12px",borderRadius:10,fontSize:13,minHeight:44,background:"var(--rose-light)",color:"var(--rose)"})}>
+              style={S.quietBtn({flex:1,padding:"12px",borderRadius:10,fontSize:13,minHeight:44,background:"var(--danger-bg)",color:"var(--danger)"})}>
               Turn off
             </button>
           </div>

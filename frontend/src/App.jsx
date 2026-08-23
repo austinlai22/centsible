@@ -25,9 +25,16 @@ const Goals        = lazy(() => import("./pages/Goals.jsx"));
 const About        = lazy(() => import("./pages/About.jsx"));
 const RewardsSheet = lazy(() => import("./pages/Rewards.jsx").then(m => ({ default: m.RewardsContent })));
 
-const Brand = ({size=22}) => (
-  <span style={{...S.serif,fontSize:size,fontWeight:300,letterSpacing:"-0.5px"}}>
-    flo<span style={{color:"#B8882A"}}>·</span>w
+/**
+ * The wordmark renders on two different surfaces — the light sidebar and the
+ * dark loading splash — so the accent dot takes the surface as a prop.
+ * --hero-accent is a mint tuned for contrast against the dark panel; on white
+ * it drops to roughly 2:1 and the dot effectively disappears, turning the
+ * wordmark into "flo w".
+ */
+const Brand = ({size=22, on="light"}) => (
+  <span style={{...S.display,fontSize:size,fontWeight:700,letterSpacing:"-0.03em"}}>
+    flo<span style={{color:on==="dark"?"var(--hero-accent)":"var(--primary)"}}>·</span>w
   </span>
 );
 
@@ -91,8 +98,8 @@ export default function App(){
   if(!authReady) return(
     <>
       <style>{CSS}</style>
-      <div style={{minHeight:"100dvh",background:"#1A1714",display:"flex",alignItems:"center",justifyContent:"center"}}>
-        <span style={{opacity:.6,color:"#F5F0E8"}}><Brand size={32}/></span>
+      <div style={{minHeight:"100dvh",background:"var(--hero)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <span style={{opacity:.6,color:"var(--hero-ink)"}}><Brand size={32} on="dark"/></span>
       </div>
     </>
   );
@@ -176,10 +183,10 @@ export default function App(){
             <span className="topbar-brand"><Brand/></span>
             <span style={{fontSize:15,fontWeight:600,display:"none"}}/>
             <button onClick={()=>setShowRewards(true)}
-              style={{...S.row,gap:7,background:"#1A1714",border:"none",borderRadius:20,padding:"7px 14px",cursor:"pointer",marginLeft:"auto",minHeight:38}}>
+              style={{...S.row,gap:7,background:"var(--hero)",border:"none",borderRadius:20,padding:"7px 14px",cursor:"pointer",marginLeft:"auto",minHeight:38}}>
               <span style={{fontSize:14}}>{lvl.icon}</span>
-              <span style={{fontSize:12,color:"#F5F0E8",fontWeight:500}}>{lvl.name}</span>
-              <span style={{fontSize:12,color:"#B8882A",fontWeight:700}}>{rewards.points} pts</span>
+              <span style={{fontSize:12,color:"var(--hero-ink)",fontWeight:500}}>{lvl.name}</span>
+              <span style={{fontSize:12,color:"var(--hero-accent)",fontWeight:700}}>{rewards.points} pts</span>
             </button>
           </header>
 
@@ -195,8 +202,8 @@ export default function App(){
           {NAV.map(n=>(
             <button key={n.id} className="bottomnav-item" onClick={()=>setTab(n.id)}
               aria-current={tab===n.id?"page":undefined}>
-              <span style={{fontSize:16,color:tab===n.id?"#1A1714":"var(--stone)",transition:"color .15s"}}>{n.icon}</span>
-              <span style={{fontSize:9,fontWeight:tab===n.id?700:400,color:tab===n.id?"#1A1714":"var(--stone)",letterSpacing:".3px"}}>{n.label}</span>
+              <span style={{fontSize:16,color:tab===n.id?"var(--hero)":"var(--subtle)",transition:"color .15s"}}>{n.icon}</span>
+              <span style={{fontSize:9,fontWeight:tab===n.id?700:400,color:tab===n.id?"var(--hero)":"var(--subtle)",letterSpacing:".3px"}}>{n.label}</span>
             </button>
           ))}
         </nav>

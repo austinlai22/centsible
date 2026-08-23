@@ -11,7 +11,7 @@ export default function Summary({profile,transactions,goals,points,accounts,load
   if(loading && !transactions?.length){
     return(
       <div className="slide-up" style={{...S.col,gap:18}}>
-        <SkeletonCard lines={4} style={{background:"#1A1714"}}/>
+        <SkeletonCard lines={4} style={{background:"var(--hero)"}}/>
         <div className="grid-stats"><SkeletonCard lines={2}/><SkeletonCard lines={2}/></div>
         <SkeletonCard lines={4}/>
         <SkeletonList rows={4}/>
@@ -45,21 +45,21 @@ export default function Summary({profile,transactions,goals,points,accounts,load
       <ErrorBanner message={error} onRetry={reload}/>
       <SyncBanner accounts={accounts}/>
 
-      <div style={{background:"#1A1714",borderRadius:20,padding:"26px 26px 22px",color:"#F5F0E8",position:"relative",overflow:"hidden"}}>
+      <div style={{background:"var(--hero)",borderRadius:20,padding:"26px 26px 22px",color:"var(--hero-ink)",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",right:-24,top:-24,width:130,height:130,background:"rgba(184,136,42,.14)",borderRadius:"50%"}}/>
         <div style={{...S.between,marginBottom:5,gap:10,flexWrap:"wrap",position:"relative"}}>
-          <p style={{fontSize:12,color:"#C8BAA8",textTransform:"uppercase",letterSpacing:1}}>{periodLabel}</p>
-          <span style={{fontSize:12,background:"rgba(255,255,255,.1)",borderRadius:20,padding:"3px 10px",color:"#F5F0E8"}}>{lvl.icon} {lvl.name} · {points} pts</span>
+          <p style={{fontSize:12,color:"var(--hero-muted)",textTransform:"uppercase",letterSpacing:1}}>{periodLabel}</p>
+          <span style={{fontSize:12,background:"rgba(255,255,255,.1)",borderRadius:20,padding:"3px 10px",color:"var(--hero-ink)"}}>{lvl.icon} {lvl.name} · {points} pts</span>
         </div>
-        <h2 style={{...S.serif,fontSize:28,fontWeight:400,marginBottom:4,position:"relative"}}>
+        <h2 style={{...S.display,fontSize:28,fontWeight:400,marginBottom:4,position:"relative"}}>
           Hey{profile.name?`, ${profile.name}`:""} 👋
         </h2>
-        <p style={{color:"#C8BAA8",fontSize:14,position:"relative"}}>{headline}</p>
+        <p style={{color:"var(--hero-muted)",fontSize:14,position:"relative"}}>{headline}</p>
         <div style={{marginTop:18,...S.row,gap:18,flexWrap:"wrap",position:"relative"}}>
-          {[["Income",income,"#8BC28A"],["Spent",expenses,"#B8882A"],["Saved",saved,saved>=0?"#8BC28A":"#C0413A"]].map(([l,v,c])=>(
+          {[["Income",income,"var(--success-on-hero)"],["Spent",expenses,"var(--hero-ink)"],["Saved",saved,saved>=0?"var(--success-on-hero)":"var(--danger-on-hero)"]].map(([l,v,c])=>(
             <div key={l}>
-              <p style={{fontSize:11,color:"#C8BAA8",marginBottom:2}}>{l}</p>
-              <p style={{...S.serif,fontSize:20,fontWeight:300,color:c}}>{fmt(v)}</p>
+              <p style={{fontSize:11,color:"var(--hero-muted)",marginBottom:2}}>{l}</p>
+              <p style={{...S.display,fontSize:20,fontWeight:300,color:c}}>{fmt(v)}</p>
             </div>
           ))}
         </div>
@@ -68,22 +68,22 @@ export default function Summary({profile,transactions,goals,points,accounts,load
       <div className="grid-stats">
         <Card>
           <p style={{fontSize:11,color:"var(--muted)",textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>Savings rate</p>
-          <p style={{...S.serif,fontSize:32,fontWeight:300,color:sr>=20?"var(--sage)":sr>=0?"var(--gold)":"var(--rose)"}}>{sr}%</p>
+          <p style={{...S.display,fontSize:32,fontWeight:300,color:sr>=20?"var(--success)":sr>=0?"var(--warning)":"var(--danger)"}}>{sr}%</p>
           <p style={{fontSize:11,color:"var(--muted)",marginTop:2}}>Target: 20%</p>
         </Card>
         <Card>
           <p style={{fontSize:11,color:"var(--muted)",textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>Goals</p>
-          <p style={{...S.serif,fontSize:32,fontWeight:300}}>{goals?.length ?? 0}</p>
+          <p style={{...S.display,fontSize:32,fontWeight:300}}>{goals?.length ?? 0}</p>
           <p style={{fontSize:11,color:"var(--muted)",marginTop:2}}>{!goals?.length?"None set yet":"active buckets"}</p>
         </Card>
         <Card>
           <p style={{fontSize:11,color:"var(--muted)",textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>Spent this month</p>
-          <p style={{...S.serif,fontSize:32,fontWeight:300,color:"var(--gold)"}}>{fmt(expenses)}</p>
+          <p style={{...S.display,fontSize:32,fontWeight:300,color:"var(--ink)"}}>{fmt(expenses)}</p>
           <p style={{fontSize:11,color:"var(--muted)",marginTop:2}}>across {Object.keys(spend).length} categories</p>
         </Card>
         <Card>
           <p style={{fontSize:11,color:"var(--muted)",textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>Net</p>
-          <p style={{...S.serif,fontSize:32,fontWeight:300,color:saved>=0?"var(--sage)":"var(--rose)"}}>{fmt(saved)}</p>
+          <p style={{...S.display,fontSize:32,fontWeight:300,color:saved>=0?"var(--success)":"var(--danger)"}}>{fmt(saved)}</p>
           <p style={{fontSize:11,color:"var(--muted)",marginTop:2}}>income − spending</p>
         </Card>
       </div>
@@ -101,7 +101,7 @@ export default function Summary({profile,transactions,goals,points,accounts,load
                   <span style={{fontSize:14}}>{m.icon} {categoryLabel(cat)}</span>
                   <span style={{fontSize:14,fontWeight:500,whiteSpace:"nowrap"}}>{fmtDec(amt)} <span style={{color:"var(--muted)",fontWeight:400}}>({w}%)</span></span>
                 </div>
-                <div style={{height:5,background:"var(--sand)",borderRadius:3,overflow:"hidden"}}>
+                <div style={{height:5,background:"var(--line)",borderRadius:3,overflow:"hidden"}}>
                   <div style={{height:"100%",width:Math.min(100,w)+"%",background:m.color,borderRadius:3,transition:"width .5s"}}/>
                 </div>
               </div>
@@ -115,13 +115,13 @@ export default function Summary({profile,transactions,goals,points,accounts,load
           {recent.map(t=>{
             const m=CATEGORY_META[t.category]||CATEGORY_META.Other;
             return(
-              <div key={t.id} style={{...S.row,padding:"10px 20px",borderTop:"1px solid var(--sand)"}}>
+              <div key={t.id} style={{...S.row,padding:"10px 20px",borderTop:"1px solid var(--line)"}}>
                 <div style={S.iconBox(m.colorLight)}>{m.icon}</div>
                 <div style={{flex:1,minWidth:0}}>
                   <p style={{fontSize:14,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.desc}</p>
                   <p style={{fontSize:11,color:"var(--muted)"}}>{formatDate(t.date)}</p>
                 </div>
-                <span style={{fontSize:14,fontWeight:600,whiteSpace:"nowrap",color:t.type==="income"?"var(--sage)":"var(--ink)"}}>
+                <span style={{fontSize:14,fontWeight:600,whiteSpace:"nowrap",color:t.type==="income"?"var(--success)":"var(--ink)"}}>
                   {t.type==="income"?"+":"−"}{fmtDec(t.amount)}
                 </span>
               </div>

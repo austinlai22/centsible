@@ -3,7 +3,7 @@ import { authApi, mfaApi, ApiError } from "../api.js";
 import { S } from "../styles.js";
 import { Spinner } from "../components/ui.jsx";
 
-const IS = {width:"100%",background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.15)",borderRadius:12,padding:"13px 16px",color:"#F5F0E8",fontSize:16,outline:"none"};
+const IS = {width:"100%",background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.15)",borderRadius:12,padding:"13px 16px",color:"var(--hero-ink)",fontSize:16,outline:"none"};
 
 /**
  * The second-factor step. Reached only after the password is accepted, while
@@ -36,8 +36,8 @@ function MfaChallenge({ onAuth, onCancel }) {
   return (
     <form onSubmit={submit} className="slide-up"
       style={{background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.09)",borderRadius:20,padding:"36px 32px"}}>
-      <h2 style={{...S.serif,color:"#F5F0E8",fontSize:22,fontWeight:400,marginBottom:8}}>Two-factor authentication</h2>
-      <p style={{color:"#C8BAA8",fontSize:14,lineHeight:1.55,marginBottom:22}}>
+      <h2 style={{...S.display,color:"var(--hero-ink)",fontSize:22,fontWeight:400,marginBottom:8}}>Two-factor authentication</h2>
+      <p style={{color:"var(--hero-muted)",fontSize:14,lineHeight:1.55,marginBottom:22}}>
         {useRecovery
           ? "Enter one of the recovery codes you saved when you turned on two-factor authentication."
           : "Enter the 6-digit code from your authenticator app."}
@@ -55,21 +55,21 @@ function MfaChallenge({ onAuth, onCancel }) {
           style={{...IS, letterSpacing: useRecovery ? "normal" : "0.4em", textAlign:"center", fontSize:20}}
         />
         {error && (
-          <div role="alert" style={{background:"var(--rose-light)",border:"1px solid #e8b4b2",borderRadius:10,padding:"10px 14px"}}>
-            <p style={{fontSize:13,color:"var(--rose)"}}>⚠️ {error}</p>
+          <div role="alert" style={{background:"var(--danger-bg)",border:"1px solid var(--danger-line)",borderRadius:10,padding:"10px 14px"}}>
+            <p style={{fontSize:13,color:"var(--danger)"}}>⚠️ {error}</p>
           </div>
         )}
         <button type="submit" disabled={loading || !value.trim()}
-          style={{...S.darkBtn(),background:loading||!value.trim()?"rgba(255,255,255,.15)":"#B8882A",color:loading||!value.trim()?"#C8BAA8":"#1A1714",borderRadius:12,minHeight:46}}>
+          style={{...S.darkBtn(),background:loading||!value.trim()?"rgba(255,255,255,.15)":"var(--hero-accent)",color:loading||!value.trim()?"var(--hero-muted)":"var(--hero)",borderRadius:12,minHeight:46}}>
           {loading ? <Spinner size={16}/> : "Verify →"}
         </button>
       </div>
       <div style={{marginTop:18,textAlign:"center"}}>
-        <button type="button" onClick={swap} style={{background:"none",border:"none",color:"#B8882A",fontSize:13,cursor:"pointer",padding:0}}>
+        <button type="button" onClick={swap} style={{background:"none",border:"none",color:"var(--hero-accent)",fontSize:13,cursor:"pointer",padding:0}}>
           {useRecovery ? "Use my authenticator app instead" : "I've lost my device — use a recovery code"}
         </button>
         <p style={{marginTop:12}}>
-          <button type="button" onClick={onCancel} style={{background:"none",border:"none",color:"#C8BAA8",fontSize:13,cursor:"pointer",padding:0}}>
+          <button type="button" onClick={onCancel} style={{background:"none",border:"none",color:"var(--hero-muted)",fontSize:13,cursor:"pointer",padding:0}}>
             Cancel and sign in as someone else
           </button>
         </p>
@@ -96,10 +96,10 @@ export function AuthScreen({onAuth}){
 
   const strength = (() => {
     if(!password.length) return null;
-    if(password.length<8)  return {label:"Too short",color:"var(--rose)",w:"25%"};
-    if(!/[A-Z]/.test(password)||!/[0-9]/.test(password)) return {label:"Fair",color:"var(--gold)",w:"55%"};
-    if(password.length<12) return {label:"Good",color:"var(--gold)",w:"75%"};
-    return {label:"Strong",color:"var(--sage)",w:"100%"};
+    if(password.length<8)  return {label:"Too short",color:"var(--danger)",w:"25%"};
+    if(!/[A-Z]/.test(password)||!/[0-9]/.test(password)) return {label:"Fair",color:"var(--warning)",w:"55%"};
+    if(password.length<12) return {label:"Good",color:"var(--warning)",w:"75%"};
+    return {label:"Strong",color:"var(--success)",w:"100%"};
   })();
 
   const submit = async (e) => {
@@ -130,11 +130,11 @@ export function AuthScreen({onAuth}){
   const toggle=()=>{setMode(m=>m==="login"?"register":"login");setError("");};
 
   return(
-    <div style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",background:"#1A1714",padding:24}}>
+    <div style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--hero)",padding:24}}>
       <div style={{width:"100%",maxWidth:420}}>
         <div style={{textAlign:"center",marginBottom:44}}>
-          <span style={{...S.serif,fontSize:36,color:"#F5F0E8",fontWeight:300,letterSpacing:"-1px"}}>flo<span style={{color:"#B8882A"}}>·</span>w</span>
-          <p style={{color:"#C8BAA8",fontSize:14,marginTop:6}}>Your money, clearly.</p>
+          <span style={{...S.display,fontSize:36,color:"var(--hero-ink)",fontWeight:300,letterSpacing:"-1px"}}>flo<span style={{color:"var(--hero-accent)"}}>·</span>w</span>
+          <p style={{color:"var(--hero-muted)",fontSize:14,marginTop:6}}>Your money, clearly.</p>
         </div>
 
         {mfaStep ? (
@@ -145,23 +145,23 @@ export function AuthScreen({onAuth}){
         ) : (
         <form key={mode} onSubmit={submit} className="slide-up"
           style={{background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.09)",borderRadius:20,padding:"36px 32px"}}>
-          <h2 style={{...S.serif,color:"#F5F0E8",fontSize:22,fontWeight:400,marginBottom:24}}>
+          <h2 style={{...S.display,color:"var(--hero-ink)",fontSize:22,fontWeight:400,marginBottom:24}}>
             {mode==="login"?"Welcome back":"Create your account"}
           </h2>
           <div style={{...S.col,gap:14}}>
             {mode==="register"&&(
               <div>
-                <label htmlFor="name" style={{...S.label,color:"#C8BAA8"}}>First name</label>
+                <label htmlFor="name" style={{...S.label,color:"var(--hero-muted)"}}>First name</label>
                 <input id="name" value={name} onChange={e=>setName(e.target.value)} placeholder="Austin" autoComplete="given-name" style={IS}/>
               </div>
             )}
             <div>
-              <label htmlFor="email" style={{...S.label,color:"#C8BAA8"}}>Email</label>
+              <label htmlFor="email" style={{...S.label,color:"var(--hero-muted)"}}>Email</label>
               <input id="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"
                 type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck="false" style={IS}/>
             </div>
             <div>
-              <label htmlFor="password" style={{...S.label,color:"#C8BAA8"}}>Password</label>
+              <label htmlFor="password" style={{...S.label,color:"var(--hero-muted)"}}>Password</label>
               <input id="password" value={password} onChange={e=>setPass(e.target.value)}
                 placeholder={mode==="register"?"At least 8 characters":"••••••••"} type="password"
                 autoComplete={mode==="register"?"new-password":"current-password"} style={IS}/>
@@ -175,12 +175,12 @@ export function AuthScreen({onAuth}){
               )}
             </div>
             {error&&(
-              <div role="alert" style={{background:"var(--rose-light)",border:"1px solid #e8b4b2",borderRadius:10,padding:"10px 14px"}}>
-                <p style={{fontSize:13,color:"var(--rose)"}}>⚠️ {error}</p>
+              <div role="alert" style={{background:"var(--danger-bg)",border:"1px solid var(--danger-line)",borderRadius:10,padding:"10px 14px"}}>
+                <p style={{fontSize:13,color:"var(--danger)"}}>⚠️ {error}</p>
               </div>
             )}
             <button type="submit" disabled={loading}
-              style={{...S.darkBtn(),background:loading?"rgba(255,255,255,.15)":"#B8882A",color:loading?"#C8BAA8":"#1A1714",borderRadius:12,marginTop:4,transition:"all .2s",cursor:loading?"default":"pointer",minHeight:46}}>
+              style={{...S.darkBtn(),background:loading?"rgba(255,255,255,.15)":"var(--hero-accent)",color:loading?"var(--hero-muted)":"var(--hero)",borderRadius:12,marginTop:4,transition:"all .2s",cursor:loading?"default":"pointer",minHeight:46}}>
               {loading?<Spinner size={16}/>:mode==="login"?"Log in →":"Create account →"}
             </button>
           </div>
@@ -188,9 +188,9 @@ export function AuthScreen({onAuth}){
         )}
 
         {!mfaStep && (
-        <p style={{textAlign:"center",marginTop:20,fontSize:14,color:"#C8BAA8"}}>
+        <p style={{textAlign:"center",marginTop:20,fontSize:14,color:"var(--hero-muted)"}}>
           {mode==="login"?"Don't have an account? ":"Already have an account? "}
-          <button type="button" onClick={toggle} style={{background:"none",border:"none",color:"#B8882A",fontSize:14,cursor:"pointer",fontWeight:600,padding:0}}>
+          <button type="button" onClick={toggle} style={{background:"none",border:"none",color:"var(--hero-accent)",fontSize:14,cursor:"pointer",fontWeight:600,padding:0}}>
             {mode==="login"?"Sign up":"Log in"}
           </button>
         </p>

@@ -100,18 +100,18 @@ export default function Transactions({transactions,loading,error,reload,addTxn,u
 
       <div style={{...S.row,gap:10}}>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…" type="search" aria-label="Search transactions"
-          style={{flex:1,minWidth:0,background:"#fff",border:"1px solid var(--sand)",borderRadius:12,padding:"11px 16px",fontSize:16,outline:"none"}}/>
+          style={{flex:1,minWidth:0,background:"#fff",border:"1px solid var(--line)",borderRadius:12,padding:"11px 16px",fontSize:16,outline:"none"}}/>
         <button onClick={syncBank} disabled={syncing} title="Sync from bank" aria-label="Sync transactions from your linked bank"
-          style={S.sandBtn({padding:"11px 13px",fontSize:16,minHeight:44,opacity:syncing?.6:1})}>
+          style={S.quietBtn({padding:"11px 13px",fontSize:16,minHeight:44,opacity:syncing?.6:1})}>
           {syncing?<Spinner size={14}/>:"↻"}
         </button>
-        <button onClick={openAdd} style={S.btn("#1A1714","#fff",{borderRadius:12,padding:"11px 18px",minHeight:44,whiteSpace:"nowrap"})}>+ Add</button>
+        <button onClick={openAdd} className="btn btn-primary" style={S.btn("var(--primary)","#fff",{borderRadius:12,padding:"11px 18px",minHeight:44,whiteSpace:"nowrap"})}>+ Add</button>
       </div>
 
       <div className="scroll-x" style={{display:"flex",gap:7,paddingBottom:2}}>
         {["All",...Object.keys(CATEGORY_META)].map(c=>(
           <button key={c} onClick={()=>setFilterCat(c)} aria-pressed={filterCat===c}
-            style={{background:filterCat===c?"#1A1714":"#fff",color:filterCat===c?"#fff":"var(--muted)",border:filterCat===c?"none":"1px solid var(--sand)",borderRadius:20,padding:"6px 12px",fontSize:12,cursor:"pointer",whiteSpace:"nowrap",transition:"all .15s"}}>
+            style={{background:filterCat===c?"var(--hero)":"#fff",color:filterCat===c?"#fff":"var(--muted)",border:filterCat===c?"none":"1px solid var(--line)",borderRadius:20,padding:"6px 12px",fontSize:12,cursor:"pointer",whiteSpace:"nowrap",transition:"all .15s"}}>
             {c==="All"?"All":CATEGORY_META[c]?.icon+" "+categoryLabel(c)}
           </button>
         ))}
@@ -126,27 +126,27 @@ export default function Transactions({transactions,loading,error,reload,addTxn,u
           // from Plaid, not a manual override that silently diverges.
           const isManual = t.source === "manual";
           return(
-            <div key={t.id} style={{...S.row,padding:"12px 18px",borderBottom:i<filtered.length-1?"1px solid var(--sand)":"none"}}>
+            <div key={t.id} style={{...S.row,padding:"12px 18px",borderBottom:i<filtered.length-1?"1px solid var(--line)":"none"}}>
               <div style={S.iconBox(m.colorLight)}>{m.icon}</div>
               <div style={{flex:1,minWidth:0}}>
                 <p style={{fontSize:14,fontWeight:500,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.desc}</p>
                 <div style={{...S.row,gap:6,marginTop:2,flexWrap:"wrap"}}>
                   <span style={{fontSize:11,color:"var(--muted)"}}>{formatDate(t.date)}</span>
                   <Badge label={categoryLabel(t.category)} color={m.color} colorLight={m.colorLight}/>
-                  {isManual && <Badge label="Manual" color="var(--muted)" colorLight="var(--sand)"/>}
+                  {isManual && <Badge label="Manual" color="var(--muted)" colorLight="var(--line)"/>}
                 </div>
               </div>
               <div style={{textAlign:"right",flexShrink:0}}>
-                <p style={{fontSize:14,fontWeight:600,whiteSpace:"nowrap",color:t.type==="income"?"var(--sage)":"var(--ink)"}}>
+                <p style={{fontSize:14,fontWeight:600,whiteSpace:"nowrap",color:t.type==="income"?"var(--success)":"var(--ink)"}}>
                   {t.type==="income"?"+":"−"}{fmtDec(t.amount)}
                 </p>
                 {isManual ? (
                   <div style={{...S.row,gap:8,marginTop:2,justifyContent:"flex-end"}}>
                     <button onClick={()=>openEdit(t)} style={{fontSize:11,color:"var(--muted)",background:"none",border:"none",cursor:"pointer",padding:"2px 0"}}>Edit</button>
-                    <button onClick={()=>handleDelete(t.id)} style={{fontSize:11,color:"var(--rose)",background:"none",border:"none",cursor:"pointer",padding:"2px 0"}}>Delete</button>
+                    <button onClick={()=>handleDelete(t.id)} style={{fontSize:11,color:"var(--danger)",background:"none",border:"none",cursor:"pointer",padding:"2px 0"}}>Delete</button>
                   </div>
                 ) : (
-                  <p style={{fontSize:10,color:"var(--stone)",marginTop:4}}>via bank sync</p>
+                  <p style={{fontSize:10,color:"var(--subtle)",marginTop:4}}>via bank sync</p>
                 )}
               </div>
             </div>
@@ -170,7 +170,7 @@ export default function Transactions({transactions,loading,error,reload,addTxn,u
               <div style={{...S.row,gap:9}}>
                 {[["monthly","Monthly"],["one-time","One-time"]].map(([val,text])=>(
                   <button key={val} type="button" onClick={()=>setFrequency(val)} aria-pressed={form.frequency===val}
-                    style={{flex:1,padding:"11px",borderRadius:10,minHeight:44,border:form.frequency===val?"2px solid #1A1714":"1px solid var(--sand)",background:form.frequency===val?"#1A1714":"#fff",color:form.frequency===val?"#fff":"var(--muted)",cursor:"pointer",fontSize:14,fontWeight:500}}>
+                    style={{flex:1,padding:"11px",borderRadius:10,minHeight:44,border:form.frequency===val?"2px solid var(--hero)":"1px solid var(--line)",background:form.frequency===val?"var(--hero)":"#fff",color:form.frequency===val?"#fff":"var(--muted)",cursor:"pointer",fontSize:14,fontWeight:500}}>
                     {text}
                   </button>
                 ))}
@@ -185,13 +185,13 @@ export default function Transactions({transactions,loading,error,reload,addTxn,u
               <div style={{...S.row,gap:9}}>
                 {["expense","income"].map(t=>(
                   <button key={t} type="button" onClick={()=>setForm(p=>({...p,type:t}))} aria-pressed={form.type===t}
-                    style={{flex:1,padding:"11px",borderRadius:10,minHeight:44,border:form.type===t?"2px solid #1A1714":"1px solid var(--sand)",background:form.type===t?"#1A1714":"#fff",color:form.type===t?"#fff":"var(--muted)",cursor:"pointer",fontSize:14,fontWeight:500,textTransform:"capitalize"}}>
+                    style={{flex:1,padding:"11px",borderRadius:10,minHeight:44,border:form.type===t?"2px solid var(--hero)":"1px solid var(--line)",background:form.type===t?"var(--hero)":"#fff",color:form.type===t?"#fff":"var(--muted)",cursor:"pointer",fontSize:14,fontWeight:500,textTransform:"capitalize"}}>
                     {t}
                   </button>
                 ))}
               </div>
             </Field>
-            {saveErr&&<p role="alert" style={{fontSize:13,color:"var(--rose)"}}>{saveErr}</p>}
+            {saveErr&&<p role="alert" style={{fontSize:13,color:"var(--danger)"}}>{saveErr}</p>}
             <button onClick={saveForm} disabled={saving} style={S.darkBtn({marginTop:4,opacity:saving?.6:1,minHeight:46})}>
               {saving?"Saving…":editId?"Save changes":"Add transaction"}
             </button>

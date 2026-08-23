@@ -66,7 +66,7 @@ export default function Goals({goals, loading, error, reload, addGoal, updateGoa
       {!goals?.length&&(
         <Card style={{textAlign:"center",padding:"44px 24px"}}>
           <p style={{fontSize:38,marginBottom:10}}>🎯</p>
-          <p style={{...S.serif,fontSize:18,fontWeight:400,marginBottom:7}}>No goals yet</p>
+          <p style={{...S.display,fontSize:18,fontWeight:400,marginBottom:7}}>No goals yet</p>
           <p style={{color:"var(--muted)",fontSize:14}}>Create a savings bucket for anything — a trip, an emergency fund.</p>
         </Card>
       )}
@@ -86,13 +86,13 @@ export default function Goals({goals, loading, error, reload, addGoal, updateGoa
                   <span style={{fontSize:26,flexShrink:0}}>{g.emoji}</span>
                   <div style={{minWidth:0}}>
                     <p style={{fontSize:16,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.name}</p>
-                    {done&&<span style={S.pill("var(--sage-light)","var(--sage)")}>Goal reached! 🎉</span>}
+                    {done&&<span style={S.pill("var(--success-bg)","var(--success)")}>Goal reached! 🎉</span>}
                   </div>
                 </div>
                 <div style={{...S.row,gap:7,flexShrink:0}}>
-                  <button onClick={()=>openEdit(g)} disabled={isDeleting} style={S.sandBtn({minHeight:32})}>Edit</button>
+                  <button onClick={()=>openEdit(g)} disabled={isDeleting} style={S.quietBtn({minHeight:32})}>Edit</button>
                   <button onClick={()=>handleDelete(g.id)} disabled={isDeleting} aria-label={`Delete ${g.name}`}
-                    style={S.sandBtn({background:"var(--rose-light)",color:"var(--rose)",minHeight:32})}>
+                    style={S.quietBtn({background:"var(--danger-bg)",color:"var(--danger)",minHeight:32})}>
                     {isDeleting?<Spinner size={11}/>:"✕"}
                   </button>
                 </div>
@@ -100,21 +100,25 @@ export default function Goals({goals, loading, error, reload, addGoal, updateGoa
 
               <div style={{margin:"13px 0 9px"}}>
                 <div style={{...S.between,marginBottom:5,gap:8}}>
-                  <span style={{...S.serif,fontSize:20,fontWeight:300}}>{fmt(saved)}</span>
+                  <span style={{...S.display,fontSize:20,fontWeight:300}}>{fmt(saved)}</span>
                   <span style={{fontSize:13,color:"var(--muted)"}}>of {fmt(target)}</span>
                 </div>
-                <div style={{height:8,background:"var(--sand)",borderRadius:6,overflow:"hidden"}}
+                <div style={{height:8,background:"var(--line)",borderRadius:6,overflow:"hidden"}}
                      role="progressbar" aria-valuenow={p} aria-valuemin={0} aria-valuemax={100}>
-                  <div style={{height:"100%",width:p+"%",background:done?"var(--sage)":"var(--gold)",borderRadius:6,transition:"width .5s"}}/>
+                  {/* Brand colour while saving, success only once reached.
+                      Amber here read as a caution — but partial progress
+                      toward a goal is the normal, healthy state, not a
+                      problem the user needs to act on. */}
+                  <div style={{height:"100%",width:p+"%",background:done?"var(--success)":"var(--primary)",borderRadius:6,transition:"width .5s"}}/>
                 </div>
                 <div style={{...S.between,marginTop:4}}>
                   <span style={{fontSize:11,color:"var(--muted)"}}>{p}% saved</span>
-                  {days!==null&&<span style={{fontSize:11,color:days<30?"var(--rose)":"var(--muted)"}}>{days>0?days+" days left":"Past deadline"}</span>}
+                  {days!==null&&<span style={{fontSize:11,color:days<30?"var(--danger)":"var(--muted)"}}>{days>0?days+" days left":"Past deadline"}</span>}
                 </div>
               </div>
 
               {perMonth>0&&!done&&(
-                <p style={{fontSize:12,color:"var(--muted)",marginBottom:11,background:"var(--sand)",borderRadius:8,padding:"6px 10px"}}>
+                <p style={{fontSize:12,color:"var(--muted)",marginBottom:11,background:"var(--line)",borderRadius:8,padding:"6px 10px"}}>
                   💡 Save ~{fmt(perMonth)}/month to hit your goal on time
                 </p>
               )}
@@ -122,7 +126,7 @@ export default function Goals({goals, loading, error, reload, addGoal, updateGoa
                 <div style={{...S.row,gap:8}}>
                   {[50,100,250].map(a=>(
                     <button key={a} onClick={()=>addFunds(g.id,a).catch(e=>alert(e.message))} disabled={isDeleting}
-                      style={S.sandBtn({flex:1,textAlign:"center",padding:"9px 0",borderRadius:9,minHeight:38})}>
+                      style={S.quietBtn({flex:1,textAlign:"center",padding:"9px 0",borderRadius:9,minHeight:38})}>
                       +{fmt(a)}
                     </button>
                   ))}
@@ -141,7 +145,7 @@ export default function Goals({goals, loading, error, reload, addGoal, updateGoa
               <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
                 {EMOJIS.map(e=>(
                   <button key={e} type="button" onClick={()=>setForm(p=>({...p,emoji:e}))} aria-pressed={form.emoji===e}
-                    style={{width:44,height:44,borderRadius:10,border:form.emoji===e?"2px solid #1A1714":"1px solid var(--sand)",background:form.emoji===e?"var(--sand)":"#fff",fontSize:20,cursor:"pointer"}}>
+                    style={{width:44,height:44,borderRadius:10,border:form.emoji===e?"2px solid var(--hero)":"1px solid var(--line)",background:form.emoji===e?"var(--line)":"#fff",fontSize:20,cursor:"pointer"}}>
                     {e}
                   </button>
                 ))}
@@ -159,7 +163,7 @@ export default function Goals({goals, loading, error, reload, addGoal, updateGoa
             <Field label="Target date (optional)" htmlFor="g-deadline">
               <input id="g-deadline" value={form.deadline} onChange={setF("deadline")} type="date" style={S.input}/>
             </Field>
-            {saveErr&&<p role="alert" style={{fontSize:13,color:"var(--rose)"}}>{saveErr}</p>}
+            {saveErr&&<p role="alert" style={{fontSize:13,color:"var(--danger)"}}>{saveErr}</p>}
             <button onClick={saveForm} disabled={saving} style={S.darkBtn({marginTop:4,opacity:saving?.6:1,minHeight:46})}>
               {saving?"Saving…":editId?"Save changes":"Create goal"}
             </button>

@@ -8,11 +8,15 @@
  */
 
 export const LEVELS = [
-  {level:1,name:"Seedling",   icon:"🌱",min:0,    color:"#4A6741"},
-  {level:2,name:"Budgeter",   icon:"🌿",min:200,  color:"#2A5C8A"},
-  {level:3,name:"Saver",      icon:"🌳",min:500,  color:"#B8882A"},
-  {level:4,name:"Strategist", icon:"⚡",min:1000, color:"#7B5EA7"},
-  {level:5,name:"Flow Master",icon:"🔥",min:2000, color:"#C0413A"},
+  // Literal hex, NOT var() tokens: Rewards.jsx builds translucent fills by
+  // concatenating hex alpha onto these (color + "1A"), and "var(--x)1A" is not
+  // a colour. Values are drawn from the validated categorical palette so the
+  // five tiers stay distinguishable from each other.
+  {level:1,name:"Seedling",   icon:"🌱",min:0,    color:"#1baf7a"},
+  {level:2,name:"Budgeter",   icon:"🌿",min:200,  color:"#2a78d6"},
+  {level:3,name:"Saver",      icon:"🌳",min:500,  color:"#0e9bb5"},
+  {level:4,name:"Strategist", icon:"⚡",min:1000, color:"#9c36b5"},
+  {level:5,name:"Flow Master",icon:"🔥",min:2000, color:"#eb6834"},
 ];
 
 export const CHARITIES = [
@@ -49,20 +53,20 @@ export const EARN_ACTIONS = [
 //                flat budget number for the whole semester directly.
 // Must stay in sync with CATEGORY_PERIOD in server/routes/data.js.
 export const CATEGORY_META = {
-  Housing:        {icon:"🏠",color:"#2A5C8A",colorLight:"#E4EEF7",period:"monthly"},
-  Food:           {icon:"🍔",color:"#B8882A",colorLight:"#FDF3DC",period:"monthly"},
-  Transport:      {icon:"🚗",color:"#6B6259",colorLight:"#E8DFD0",period:"monthly"},
-  Health:         {icon:"💊",color:"#4A6741",colorLight:"#E8F0E6",period:"monthly"},
-  Shopping:       {icon:"🛍️",color:"#C0413A",colorLight:"#FAE8E7",period:"monthly"},
-  Entertainment:  {icon:"🎬",color:"#7B5EA7",colorLight:"#F3EEF9",period:"monthly"},
-  Savings:        {icon:"💰",color:"#4A6741",colorLight:"#E8F0E6",period:"monthly"},
-  Other:          {icon:"📦",color:"#C8BAA8",colorLight:"#E8DFD0",period:"monthly"},
+  Housing:        {icon:"🏠",color:"#2a78d6",colorLight:"#EAF2FB",period:"monthly"},
+  Food:           {icon:"🍔",color:"#eb6834",colorLight:"#FDF0EB",period:"monthly"},
+  Transport:      {icon:"🚗",color:"#4a3aa7",colorLight:"#EDEBF6",period:"monthly"},
+  Health:         {icon:"💊",color:"#008300",colorLight:"#E6F3E6",period:"monthly"},
+  Shopping:       {icon:"🛍️",color:"#e87ba4",colorLight:"#FDF2F6",period:"monthly"},
+  Entertainment:  {icon:"🎬",color:"#9c36b5",colorLight:"#F5EBF8",period:"monthly"},
+  Savings:        {icon:"💰",color:"#1baf7a",colorLight:"#E8F7F2",period:"monthly"},
+  Other:          {icon:"📦",color:"#96591f",colorLight:"#F4EEE9",period:"monthly"},
   // ── Student categories — termly/one-time expenses, shown in Semester view ──
-  Tuition:        {icon:"🎓",color:"#8B3A62",colorLight:"#F7E8EF",period:"semester"},
-  HousingDeposit: {icon:"🔑",color:"#2A5C8A",colorLight:"#E4EEF7",period:"semester",label:"Housing Deposit"},
-  HealthInsurance:{icon:"🩺",color:"#4A6741",colorLight:"#E8F0E6",period:"semester",label:"Health Insurance"},
-  BooksSupplies:  {icon:"📚",color:"#B8882A",colorLight:"#FDF3DC",period:"semester",label:"Books & Supplies"},
-  Moving:         {icon:"🚚",color:"#6B6259",colorLight:"#E8DFD0",period:"semester"},
+  Tuition:        {icon:"🎓",color:"#a61e6d",colorLight:"#F6E8F0",period:"semester"},
+  HousingDeposit: {icon:"🔑",color:"#1864ab",colorLight:"#E8F0F7",period:"semester",label:"Housing Deposit"},
+  HealthInsurance:{icon:"🩺",color:"#0e9bb5",colorLight:"#E7F5F8",period:"semester",label:"Health Insurance"},
+  BooksSupplies:  {icon:"📚",color:"#d9480f",colorLight:"#FBEDE7",period:"semester",label:"Books & Supplies"},
+  Moving:         {icon:"🚚",color:"#5f3dc4",colorLight:"#EFECF9",period:"semester"},
 };
 
 /** Display label for a category — uses the explicit `label` override if

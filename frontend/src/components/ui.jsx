@@ -4,9 +4,12 @@ import { S } from "../styles.js";
 import { pct, fmtDec } from "../lib/format.js";
 
 export function Card({children,style={},onClick,className=""}){
+  // Visual treatment comes from the .card class so it can express hover and
+  // focus states, which inline styles cannot.
   return (
-    <div onClick={onClick} className={className}
-      style={{background:"#fff",borderRadius:16,padding:24,boxShadow:"0 1px 4px rgba(0,0,0,.07)",cursor:onClick?"pointer":"default",...style}}>
+    <div onClick={onClick}
+      className={`card ${onClick ? "card-interactive" : ""} ${className}`.trim()}
+      style={{padding:24,cursor:onClick?"pointer":"default",...style}}>
       {children}
     </div>
   );
@@ -26,13 +29,13 @@ export function SpendBar({spent,budget,color}){
     <div style={{marginTop:8}}>
       <div style={{...S.between,marginBottom:5,gap:8}}>
         <span style={{fontSize:12,color:"var(--muted)"}}>{fmtDec(spent)} spent</span>
-        <span style={{fontSize:12,color:over?"var(--rose)":"var(--muted)",textAlign:"right"}}>
+        <span style={{fontSize:12,color:over?"var(--danger)":"var(--muted)",textAlign:"right"}}>
           {over?"Over budget!":fmtDec(budget-spent)+" left"}
         </span>
       </div>
-      <div style={{height:6,background:"var(--sand)",borderRadius:4,overflow:"hidden"}}
+      <div style={{height:6,background:"var(--line)",borderRadius:4,overflow:"hidden"}}
            role="progressbar" aria-valuenow={p} aria-valuemin={0} aria-valuemax={100}>
-        <div style={{height:"100%",width:p+"%",background:over?"var(--rose)":color,borderRadius:4,transition:"width .5s ease"}}/>
+        <div style={{height:"100%",width:p+"%",background:over?"var(--danger)":color,borderRadius:4,transition:"width .5s ease"}}/>
       </div>
     </div>
   );
@@ -71,12 +74,12 @@ export function Sheet({onClose,title,subtitle,children,zIndex=200}){
     <div className="fade-in sheet-backdrop" style={{zIndex}} onClick={onClose}>
       <div className="slide-up sheet-panel" role="dialog" aria-modal="true" aria-label={title}
            onClick={e=>e.stopPropagation()}>
-        <div style={{padding:"22px 22px 14px",borderBottom:"1px solid var(--sand)",...S.between,gap:12,flexShrink:0}}>
+        <div style={{padding:"22px 22px 14px",borderBottom:"1px solid var(--line)",...S.between,gap:12,flexShrink:0}}>
           <div style={{minWidth:0}}>
-            <p style={{...S.serif,fontSize:20,fontWeight:400}}>{title}</p>
+            <p style={{...S.display,fontSize:20,fontWeight:400}}>{title}</p>
             {subtitle&&<p style={{fontSize:12,color:"var(--muted)",marginTop:2}}>{subtitle}</p>}
           </div>
-          <button style={S.sandBtn({flexShrink:0})} onClick={onClose}>Close</button>
+          <button style={S.quietBtn({flexShrink:0})} onClick={onClose}>Close</button>
         </div>
         {children}
       </div>
@@ -87,20 +90,20 @@ export function Sheet({onClose,title,subtitle,children,zIndex=200}){
 
 export function MenuRow({icon,label,sub,right,onClick,danger=false,noBorder=false}){
   return(
-    <button onClick={onClick} style={{width:"100%",...S.row,padding:"14px 0",background:"none",border:"none",borderBottom:noBorder?"none":"1px solid var(--sand)",cursor:"pointer",textAlign:"left",minHeight:44}}>
-      <div style={{...S.iconBox("var(--sand)"),fontSize:17}}>{icon}</div>
+    <button onClick={onClick} style={{width:"100%",...S.row,padding:"14px 0",background:"none",border:"none",borderBottom:noBorder?"none":"1px solid var(--line)",cursor:"pointer",textAlign:"left",minHeight:44}}>
+      <div style={{...S.iconBox("var(--line)"),fontSize:17}}>{icon}</div>
       <div style={{flex:1,minWidth:0}}>
-        <p style={{fontSize:15,fontWeight:500,color:danger?"var(--rose)":"var(--ink)"}}>{label}</p>
+        <p style={{fontSize:15,fontWeight:500,color:danger?"var(--danger)":"var(--ink)"}}>{label}</p>
         {sub&&<p style={{fontSize:12,color:"var(--muted)",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sub}</p>}
       </div>
-      {right||<span style={{color:"var(--stone)",fontSize:18}}>›</span>}
+      {right||<span style={{color:"var(--subtle)",fontSize:18}}>›</span>}
     </button>
   );
 }
 
 export function Spinner({size=18}){
   return <span className="spin" role="status" aria-label="Loading"
-    style={{display:"inline-block",width:size,height:size,border:"2px solid var(--sand)",borderTopColor:"var(--ink)",borderRadius:"50%"}}/>;
+    style={{display:"inline-block",width:size,height:size,border:"2px solid var(--line)",borderTopColor:"var(--ink)",borderRadius:"50%"}}/>;
 }
 
 /** Yellow banner when one or more linked accounts need re-authentication. */
@@ -108,11 +111,11 @@ export function SyncBanner({accounts}){
   const needsRelink = (accounts||[]).filter(a=>a.item_status==="relink_required");
   if(!needsRelink.length) return null;
   return(
-    <div style={{background:"var(--gold-light)",border:"1px solid #e8d0a0",borderRadius:14,padding:"13px 16px",...S.row,gap:12,alignItems:"flex-start"}}>
+    <div style={{background:"var(--warning-bg)",border:"1px solid var(--warning-line)",borderRadius:14,padding:"13px 16px",...S.row,gap:12,alignItems:"flex-start"}}>
       <span style={{fontSize:20,flexShrink:0}}>🔔</span>
       <div>
-        <p style={{fontSize:14,fontWeight:600,color:"var(--gold)"}}>Action needed</p>
-        <p style={{fontSize:12,color:"var(--gold)",marginTop:2}}>
+        <p style={{fontSize:14,fontWeight:600,color:"var(--warning)"}}>Action needed</p>
+        <p style={{fontSize:12,color:"var(--warning)",marginTop:2}}>
           {needsRelink.map(a=>a.institution_name||a.name).join(", ")} needs to be re-linked. Go to About → Linked Accounts.
         </p>
       </div>
@@ -128,19 +131,19 @@ export function SyncBanner({accounts}){
 export function ErrorBanner({message, onRetry}){
   if(!message) return null;
   return(
-    <div role="alert" style={{background:"var(--rose-light)",border:"1px solid #e8b4b2",borderRadius:14,padding:"13px 16px",...S.row,gap:12,alignItems:"flex-start"}}>
+    <div role="alert" style={{background:"var(--danger-bg)",border:"1px solid var(--danger-line)",borderRadius:14,padding:"13px 16px",...S.row,gap:12,alignItems:"flex-start"}}>
       <span style={{fontSize:20,flexShrink:0}}>⚠️</span>
       <div style={{flex:1,minWidth:0}}>
-        <p style={{fontSize:14,fontWeight:600,color:"var(--rose)"}}>Couldn't load the latest data</p>
-        <p style={{fontSize:12,color:"var(--rose)",marginTop:2,opacity:.85}}>Showing the most recent data available. {message}</p>
+        <p style={{fontSize:14,fontWeight:600,color:"var(--danger)"}}>Couldn't load the latest data</p>
+        <p style={{fontSize:12,color:"var(--danger)",marginTop:2,opacity:.85}}>Showing the most recent data available. {message}</p>
       </div>
-      {onRetry && <button onClick={onRetry} style={S.btn("var(--rose)","#fff",{flexShrink:0,padding:"7px 12px",fontSize:12})}>Retry</button>}
+      {onRetry && <button onClick={onRetry} style={S.btn("var(--danger)","#fff",{flexShrink:0,padding:"7px 12px",fontSize:12})}>Retry</button>}
     </div>
   );
 }
 
 export function SkeletonBlock({height=16, width="100%", radius=6, style={}}){
-  return <div style={{height,width,borderRadius:radius,background:"linear-gradient(90deg,var(--sand) 25%,#f0e9dc 50%,var(--sand) 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s ease infinite",...style}}/>;
+  return <div style={{height,width,borderRadius:radius,background:"linear-gradient(90deg,var(--line) 25%,var(--bg) 50%,var(--line) 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s ease infinite",...style}}/>;
 }
 
 export function SkeletonCard({lines=3, style={}}){
@@ -158,7 +161,7 @@ export function SkeletonList({rows=4}){
   return(
     <Card style={{padding:0}}>
       {Array.from({length:rows}).map((_,i)=>(
-        <div key={i} style={{...S.row,padding:"12px 18px",borderBottom:i<rows-1?"1px solid var(--sand)":"none"}}>
+        <div key={i} style={{...S.row,padding:"12px 18px",borderBottom:i<rows-1?"1px solid var(--line)":"none"}}>
           <SkeletonBlock height={38} width={38} radius={10}/>
           <div style={{flex:1}}>
             <SkeletonBlock height={13} width="55%" style={{marginBottom:6}}/>
@@ -175,7 +178,7 @@ export function SkeletonList({rows=4}){
 export function PageFallback(){
   return(
     <div style={{...S.col,gap:16}}>
-      <SkeletonCard lines={3} style={{background:"#1A1714"}}/>
+      <SkeletonCard lines={3} style={{background:"var(--hero)"}}/>
       <SkeletonList rows={4}/>
     </div>
   );

@@ -20,7 +20,7 @@ export default function Budget({
   if((budgetsLoading&&!Object.keys(budgets||{}).length) || (txnLoading&&!transactions?.length)){
     return(
       <div className="slide-up" style={{...S.col,gap:16}}>
-        <SkeletonCard lines={2} style={{background:"#1A1714"}}/>
+        <SkeletonCard lines={2} style={{background:"var(--hero)"}}/>
         <SkeletonList rows={5}/>
       </div>
     );
@@ -83,11 +83,11 @@ export default function Budget({
 
       {/* Period toggle — inline JSX rather than a nested component, which
           React would remount on every parent render. */}
-      <div style={{...S.row,gap:0,background:"var(--sand)",borderRadius:12,padding:3}} role="tablist">
+      <div style={{...S.row,gap:0,background:"var(--line)",borderRadius:12,padding:3}} role="tablist">
         {[["monthly","Month"],["semester","Semester"]].map(([val,text])=>(
           <button key={val} role="tab" aria-selected={period===val} onClick={()=>setPeriod(val)}
             style={{flex:1,padding:"9px 0",borderRadius:9,border:"none",cursor:"pointer",fontSize:13,fontWeight:600,transition:"all .15s",minHeight:40,
-              background:period===val?"#1A1714":"transparent",color:period===val?"#fff":"var(--muted)"}}>
+              background:period===val?"var(--hero)":"transparent",color:period===val?"#fff":"var(--muted)"}}>
             {text}
           </button>
         ))}
@@ -96,41 +96,43 @@ export default function Budget({
       {/* Period navigation — steps by calendar month or by whole semester,
           following the active toggle. */}
       <div style={{...S.row,justifyContent:"space-between",gap:10}}>
-        <button onClick={goPrev} aria-label="Previous period" style={S.sandBtn({padding:"9px 14px",fontSize:15,lineHeight:1,minHeight:40})}>‹</button>
+        <button onClick={goPrev} aria-label="Previous period" style={S.quietBtn({padding:"9px 14px",fontSize:15,lineHeight:1,minHeight:40})}>‹</button>
         <div style={{...S.col,gap:2,alignItems:"center",flex:1}}>
           <span style={{fontSize:14,fontWeight:600,color:"var(--ink)"}}>{label}</span>
-          {!isCurrentPeriod&&<button onClick={goToToday} style={{fontSize:11,color:"var(--sky)",background:"none",border:"none",cursor:"pointer",padding:0}}>Jump to today</button>}
+          {!isCurrentPeriod&&<button onClick={goToToday} style={{fontSize:11,color:"var(--info)",background:"none",border:"none",cursor:"pointer",padding:0}}>Jump to today</button>}
         </div>
-        <button onClick={goNext} aria-label="Next period" style={S.sandBtn({padding:"9px 14px",fontSize:15,lineHeight:1,minHeight:40})}>›</button>
+        <button onClick={goNext} aria-label="Next period" style={S.quietBtn({padding:"9px 14px",fontSize:15,lineHeight:1,minHeight:40})}>›</button>
       </div>
 
-      <Card style={{background:"#1A1714",color:"#F5F0E8"}}>
-        <p style={{fontSize:11,color:"#C8BAA8",textTransform:"uppercase",letterSpacing:1,marginBottom:5}}>
+      <Card style={{background:"var(--hero)",color:"var(--hero-ink)"}}>
+        <p style={{fontSize:11,color:"var(--hero-muted)",textTransform:"uppercase",letterSpacing:1,marginBottom:5}}>
           {period==="semester" ? `${semInfo.name} semester budget` : `${label} budget`}
         </p>
-        <p style={{...S.serif,fontSize:34,fontWeight:300}}>{fmt(totalB)}</p>
+        <p style={{...S.display,fontSize:34,fontWeight:300}}>{fmt(totalB)}</p>
         <div style={{...S.row,gap:20,marginTop:12,flexWrap:"wrap"}}>
-          <div><p style={{fontSize:11,color:"#C8BAA8"}}>Spent</p><p style={{fontSize:17,color:"#B8882A"}}>{fmt(totalS)}</p></div>
-          <div><p style={{fontSize:11,color:"#C8BAA8"}}>Remaining</p><p style={{fontSize:17,color:totalB-totalS>=0?"#8BC28A":"#C0413A"}}>{fmt(totalB-totalS)}</p></div>
+          <div><p style={{fontSize:11,color:"var(--hero-muted)"}}>Spent</p><p style={{fontSize:17,color:"var(--hero-ink)"}}>{fmt(totalS)}</p></div>
+          {/* --danger-on-hero, not --danger: the light-surface red is only
+              3.0:1 against the dark panel, which fails AA for text. */}
+          <div><p style={{fontSize:11,color:"var(--hero-muted)"}}>Remaining</p><p style={{fontSize:17,color:totalB-totalS>=0?"var(--success-on-hero)":"var(--danger-on-hero)"}}>{fmt(totalB-totalS)}</p></div>
         </div>
-        {period==="semester"&&<p style={{fontSize:11,color:"#C8BAA8",marginTop:10}}>{semInfo.start} → {semInfo.end}</p>}
+        {period==="semester"&&<p style={{fontSize:11,color:"var(--hero-muted)",marginTop:10}}>{semInfo.start} → {semInfo.end}</p>}
       </Card>
 
       {overBudget.length>0&&(
-        <div style={{background:"var(--rose-light)",border:"1px solid #e8b4b2",borderRadius:14,padding:"14px 16px",...S.row,alignItems:"flex-start",gap:12}}>
+        <div style={{background:"var(--danger-bg)",border:"1px solid var(--danger-line)",borderRadius:14,padding:"14px 16px",...S.row,alignItems:"flex-start",gap:12}}>
           <span style={{fontSize:20,flexShrink:0}}>⚠️</span>
           <div>
-            <p style={{fontSize:14,fontWeight:600,color:"var(--rose)",marginBottom:3}}>Over budget in {overBudget.length} {overBudget.length===1?"category":"categories"}</p>
-            <p style={{fontSize:13,color:"var(--rose)",opacity:.85}}>{overBudget.map(([c])=>CATEGORY_META[c]?.icon+" "+categoryLabel(c)).join(" · ")}</p>
+            <p style={{fontSize:14,fontWeight:600,color:"var(--danger)",marginBottom:3}}>Over budget in {overBudget.length} {overBudget.length===1?"category":"categories"}</p>
+            <p style={{fontSize:13,color:"var(--danger)",opacity:.85}}>{overBudget.map(([c])=>CATEGORY_META[c]?.icon+" "+categoryLabel(c)).join(" · ")}</p>
           </div>
         </div>
       )}
       {nearBudget.length>0&&(
-        <div style={{background:"var(--gold-light)",border:"1px solid #e8d0a0",borderRadius:14,padding:"14px 16px",...S.row,alignItems:"flex-start",gap:12}}>
+        <div style={{background:"var(--warning-bg)",border:"1px solid var(--warning-line)",borderRadius:14,padding:"14px 16px",...S.row,alignItems:"flex-start",gap:12}}>
           <span style={{fontSize:20,flexShrink:0}}>⚡</span>
           <div>
-            <p style={{fontSize:14,fontWeight:600,color:"var(--gold)",marginBottom:3}}>Approaching limit in {nearBudget.length} {nearBudget.length===1?"category":"categories"}</p>
-            <p style={{fontSize:13,color:"var(--gold)",opacity:.85}}>{nearBudget.map(([c])=>CATEGORY_META[c]?.icon+" "+categoryLabel(c)).join(" · ")}</p>
+            <p style={{fontSize:14,fontWeight:600,color:"var(--warning)",marginBottom:3}}>Approaching limit in {nearBudget.length} {nearBudget.length===1?"category":"categories"}</p>
+            <p style={{fontSize:13,color:"var(--warning)",opacity:.85}}>{nearBudget.map(([c])=>CATEGORY_META[c]?.icon+" "+categoryLabel(c)).join(" · ")}</p>
           </div>
         </div>
       )}
@@ -145,15 +147,15 @@ export default function Budget({
           const isEd=editing?.category===cat;
           const editable=isEditable(cat);
           return(
-            <Card key={cat} style={{borderLeft:over?"3px solid var(--rose)":near?"3px solid var(--gold)":"3px solid transparent",paddingLeft:over||near?21:24}}>
+            <Card key={cat} style={{borderLeft:over?"3px solid var(--danger)":near?"3px solid var(--warning)":"3px solid transparent",paddingLeft:over||near?21:24}}>
               <div style={{...S.between,gap:10}}>
                 <div style={{...S.row,gap:10,minWidth:0}}>
                   <div style={S.iconBox(meta.colorLight)}>{meta.icon}</div>
                   <div style={{minWidth:0}}>
                     <span style={{fontSize:15,fontWeight:500}}>{categoryLabel(cat)}</span>
                     {!editable&&<span style={{fontSize:10,color:"var(--muted)",marginLeft:6}}>· derived from monthly</span>}
-                    {over&&<p style={{fontSize:11,color:"var(--rose)",fontWeight:600,marginTop:1}}>Over by {fmtDec(spent-budget)}</p>}
-                    {near&&<p style={{fontSize:11,color:"var(--gold)",fontWeight:600,marginTop:1}}>{100-p}% of budget left</p>}
+                    {over&&<p style={{fontSize:11,color:"var(--danger)",fontWeight:600,marginTop:1}}>Over by {fmtDec(spent-budget)}</p>}
+                    {near&&<p style={{fontSize:11,color:"var(--warning)",fontWeight:600,marginTop:1}}>{100-p}% of budget left</p>}
                   </div>
                 </div>
                 {isEd?(
@@ -161,22 +163,22 @@ export default function Budget({
                     <input value={editing.value} inputMode="decimal" autoFocus
                       onChange={e=>setEditing({...editing,value:e.target.value.replace(/[^0-9.]/g,"")})}
                       onKeyDown={e=>{if(e.key==="Enter")saveEdit();if(e.key==="Escape")setEditing(null);}}
-                      style={{width:88,border:"1px solid var(--stone)",borderRadius:8,padding:"6px 10px",fontSize:16,outline:"none",textAlign:"right"}}/>
-                    <button onClick={saveEdit} style={S.btn("#1A1714","#fff",{borderRadius:8,padding:"6px 12px",fontSize:13})}>Save</button>
+                      style={{width:88,border:"1px solid var(--subtle)",borderRadius:8,padding:"6px 10px",fontSize:16,outline:"none",textAlign:"right"}}/>
+                    <button onClick={saveEdit} className="btn btn-primary" style={S.btn("var(--primary)","#fff",{borderRadius:8,padding:"6px 12px",fontSize:13})}>Save</button>
                   </div>
                 ):(
                   <div style={{...S.row,gap:10,flexShrink:0}}>
-                    <span style={{fontSize:15,fontWeight:500,color:over?"var(--rose)":"var(--ink)"}}>
-                      {budget?fmt(budget):<span style={{color:"var(--stone)"}}>Not set</span>}
+                    <span style={{fontSize:15,fontWeight:500,color:over?"var(--danger)":"var(--ink)"}}>
+                      {budget?fmt(budget):<span style={{color:"var(--subtle)"}}>Not set</span>}
                     </span>
                     {editable
-                      ? <button onClick={()=>setEditing({category:cat,value:budgets?.[cat]?String(budgets[cat]):""})} style={S.sandBtn({minHeight:32})}>Edit</button>
-                      : <span style={{fontSize:11,color:"var(--stone)",padding:"4px 8px"}}>Set in Month view</span>}
+                      ? <button onClick={()=>setEditing({category:cat,value:budgets?.[cat]?String(budgets[cat]):""})} style={S.quietBtn({minHeight:32})}>Edit</button>
+                      : <span style={{fontSize:11,color:"var(--subtle)",padding:"4px 8px"}}>Set in Month view</span>}
                   </div>
                 )}
               </div>
               {budget>0&&<SpendBar spent={spent} budget={budget} color={meta.color}/>}
-              {isEd&&editErr&&<p style={{fontSize:12,color:"var(--rose)",marginTop:8}}>{editErr}</p>}
+              {isEd&&editErr&&<p style={{fontSize:12,color:"var(--danger)",marginTop:8}}>{editErr}</p>}
             </Card>
           );
         })}
