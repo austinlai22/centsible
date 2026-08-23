@@ -77,6 +77,12 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS phone           TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS term_system     TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS student_type    TEXT;
 
+-- NULL means "not asked yet", which is different from FALSE ("asked, and this
+-- student doesn't receive aid"). Without that distinction the setup prompt
+-- could never be satisfied by a self-funded student — it would keep asking for
+-- a disbursement they will never have.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS receives_aid    BOOLEAN;
+
 -- ── auth_identities ───────────────────────────────────────────────────────────
 -- Separates IDENTITY (how you prove who you are) from ACCOUNT (the users row),
 -- so one account can be reached by several sign-in methods: email+password

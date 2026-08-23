@@ -34,7 +34,7 @@ We believe in collecting the minimum necessary to deliver a genuinely useful pro
 |------|-----|
 | Name | To personalize your experience |
 | Email address | To identify your account, sign you in, and contact you about account or security issues |
-| Onboarding answers (income range, financial goals, spending style) | To set up your initial budget and tailor the app to your situation |
+| Your term dates, and optionally your course stage and expected financial aid | To work out how long your money has to last, and when your next payment arrives |
 | Transactions you manually enter | To power your budget, spending breakdowns, and goal tracking |
 | Savings goals you create | To track your progress and send you milestone notifications |
 | Spending limits and budget amounts | To generate alerts and summaries |

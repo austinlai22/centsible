@@ -37,53 +37,18 @@ const cont = () => page.getByRole("button", { name: /continue|skip for now/i });
 await page.locator("input").first().fill("Austin");
 await cont().click(); await page.waitForTimeout(400);
 
-// 2. student type — first-year, which triggers the 30-day federal hold
-ck("asks for student type", await page.getByText(/where are you in your studies/i).isVisible().catch(() => false));
-await page.getByRole("button", { name: /first-year undergraduate/i }).click();
-await page.waitForTimeout(150);
-await cont().click(); await page.waitForTimeout(400);
-
-// 3. term system
-ck("asks how the school divides the year",
-   await page.getByText(/how does your school divide/i).isVisible().catch(() => false));
-await page.getByRole("button", { name: /^semesters/i }).click();
-await page.waitForTimeout(150);
-await cont().click(); await page.waitForTimeout(400);
-
-// 4. term dates — the end should be proposed once a start is entered
+// 2. term dates — the only other thing signup blocks on
 ck("asks for term dates", await page.getByText(/when does your current term run/i).isVisible().catch(() => false));
 await page.locator("#ob-start").fill("2026-08-24");
 await page.waitForTimeout(300);
 const proposedEnd = await page.locator("#ob-end").inputValue();
-ck("proposes an end date from the chosen term system", !!proposedEnd, `end was "${proposedEnd}"`);
-await cont().click(); await page.waitForTimeout(400);
-
-// 5. disbursement — the date should already reflect the first-year 30-day hold
-ck("asks when aid arrives", await page.getByText(/when does your aid arrive/i).isVisible().catch(() => false));
-const proposedDate = await page.locator("#ob-when").inputValue();
-const gap = proposedDate
-  ? Math.round((new Date(proposedDate) - new Date("2026-08-24")) / 86400000)
-  : null;
-ck("prefills a first-year date ~37 days out (30-day loan hold + refund lag)",
-   gap !== null && gap >= 30 && gap <= 45, `proposed ${proposedDate} (${gap} days after term start)`);
-ck("explains WHY the date is later than expected",
-   await page.getByText(/30 days into the term/i).isVisible().catch(() => false));
-await page.locator("#ob-amt").fill("8400");
-await cont().click(); await page.waitForTimeout(400);
-
-// 6. recurring income (optional) — skip it
-ck("separates recurring income from lump-sum aid",
-   await page.getByText(/any regular income/i).isVisible().catch(() => false));
-await cont().click(); await page.waitForTimeout(400);
-
-// 7. housing
-await page.locator("input").first().fill("950");
-await cont().click(); await page.waitForTimeout(400);
-
-// 8. spending style
-await page.getByRole("button", { name: /balanced/i }).click();
-await page.waitForTimeout(150);
+ck("proposes an end date so neither field starts blank", !!proposedEnd, `end was "${proposedEnd}"`);
 await cont().click(); await page.waitForTimeout(500);
+
+// Signup should now be over — everything else moved to the Summary.
+const stillAsking = await page.getByText(/where are you in your studies|when does your aid arrive|how would you describe your spending/i)
+  .isVisible().catch(() => false);
+ck("signup does NOT block on student type, aid, or spending style", !stillAsking);
 
 // privacy gate
 const rp = page.getByRole("button", { name: /read our privacy policy/i });
@@ -93,7 +58,30 @@ if (await rp.isVisible({ timeout: 3000 }).catch(() => false)) {
   await page.getByRole("button", { name: /accept/i }).click();
   await page.waitForTimeout(1800);
 }
-ck("reaches the app", await page.getByText(/runway/i).isVisible().catch(() => false));
+ck("reaches the app", await page.getByText(/spending breakdown/i).isVisible().catch(() => false));
+
+// ── the deferred questions now live on the Summary ──
+ck("Summary offers to finish setup",
+   await page.getByText(/sharpen your runway/i).isVisible().catch(() => false));
+await page.getByRole("button", { name: /finish setup/i }).click();
+await page.waitForTimeout(400);
+await page.getByRole("button", { name: /first-year undergraduate/i }).click();
+await page.waitForTimeout(150);
+await page.getByRole("button", { name: /^semesters/i }).click();
+await page.waitForTimeout(300);
+
+const scDate = await page.locator("#sc-when").inputValue();
+const gap = scDate ? Math.round((new Date(scDate) - new Date("2026-08-24")) / 86400000) : null;
+ck("prefills a first-year aid date ~37 days out (30-day hold + refund lag)",
+   gap !== null && gap >= 30 && gap <= 45, `proposed ${scDate} (${gap} days after term start)`);
+ck("explains why that date is later than expected",
+   await page.getByText(/30 days into the term/i).isVisible().catch(() => false));
+
+await page.locator("#sc-amt").fill("8400");
+await page.getByRole("button", { name: /^save$/i }).click();
+await page.waitForTimeout(1500);
+ck("the prompt disappears once the profile is complete",
+   !(await page.getByText(/sharpen your runway/i).isVisible().catch(() => false)));
 
 // What actually persisted — the runway is computed from these.
 const state = await page.evaluate(async (api) => {
@@ -107,6 +95,7 @@ const state = await page.evaluate(async (api) => {
 
 ck("student type persisted", state.me.user?.student_type === "first_year", JSON.stringify(state.me.user?.student_type));
 ck("term system persisted",  state.me.user?.term_system === "semester",   JSON.stringify(state.me.user?.term_system));
+ck("aid answer persisted",   state.me.user?.receives_aid === true,        JSON.stringify(state.me.user?.receives_aid));
 ck("term saved",             state.terms.terms?.length === 1,             JSON.stringify(state.terms.terms));
 ck("term start is what was entered", state.terms.terms?.[0]?.start_date === "2026-08-24", JSON.stringify(state.terms.terms?.[0]));
 ck("disbursement saved with the entered amount",

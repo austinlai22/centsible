@@ -253,6 +253,12 @@ const UpdateMeSchema = z.object({
   // phone number, and leave real verification to an SMS round-trip if this
   // ever becomes an MFA channel.
   phone:   z.string().max(32).regex(/^[0-9+()\-.\s]*$/, "Phone can only contain digits and + ( ) - . spaces").optional(),
+  // Study profile — collected after onboarding via the Summary setup prompt,
+  // and editable in Settings.
+  termSystem:   z.enum(["semester","quarter","trimester","other"]).optional(),
+  studentType:  z.enum(["first_year","undergrad","grad","phd"]).optional(),
+  receivesAid:  z.boolean().optional(),
+  housingCost:  z.number().min(0).max(1_000_000).optional(),
 }).refine(d => Object.keys(d).length > 0, { message: "Provide at least one field to update" });
 
 router.put("/me", requireAuth, async (req, res, next) => {
@@ -283,6 +289,19 @@ router.put("/me", requireAuth, async (req, res, next) => {
     // above: "" is how the client clears an optional field, and a truthiness
     // check would silently ignore it — leaving the user unable to remove a
     // phone number once saved. Stored as NULL rather than "".
+    // Study profile. receives_aid is presence-checked, not truthiness-checked:
+    // `false` is a real answer ("I don't get aid") and a truthiness check would
+    // discard it, leaving the setup prompt permanently unsatisfiable for
+    // self-funded students.
+    for (const [key, col] of [
+      ["termSystem", "term_system"], ["studentType", "student_type"],
+      ["receivesAid", "receives_aid"], ["housingCost", "housing_cost"],
+    ]) {
+      if (key in parsed.data) {
+        params.push(parsed.data[key]);
+        sets.push(`${col} = $${params.length}`);
+      }
+    }
     if ("phone" in parsed.data) {
       params.push(phone.trim() || null);
       sets.push(`phone = $${params.length}`);

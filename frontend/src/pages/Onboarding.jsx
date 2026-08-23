@@ -113,8 +113,8 @@ export function Onboarding({onComplete}){
                         // Propose an end date from the term system so the
                         // student corrects a plausible guess rather than
                         // filling a blank field.
-                        const end=(!v?.end||v.end===suggestTermEnd(v?.start,answers.termSystem))
-                          ? suggestTermEnd(start,answers.termSystem) : v.end;
+                        const end=(!v?.end||v.end===suggestTermEnd(v?.start,'semester'))
+                          ? suggestTermEnd(start,'semester') : v.end;
                         return {...(v||{}),start,end};
                       })} style={IS}/>
                   </div>

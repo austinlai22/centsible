@@ -78,15 +78,7 @@ export default function App(){
 
   const handleOnboardingComplete = async (answers) => {
     try {
-      const res = await authApi.completeOnboarding({
-        name:          answers.name,
-        income:        answers.income,
-        financialGoal: answers.goal,
-        housingCost:   answers.housing,
-        spendingStyle: answers.style,
-        termSystem:    answers.termSystem,
-        studentType:   answers.studentType,
-      });
+      const res = await authApi.completeOnboarding({ name: answers.name });
       setAuthUser(res.user);
 
       // Persist the term they entered, if they gave one. Non-fatal: onboarding
@@ -108,28 +100,7 @@ export default function App(){
         } catch { /* correctable later in Settings */ }
       }
 
-      // "I don't receive aid" is recorded by creating nothing — the runway
-      // then counts down to the end of term, which is the correct behaviour
-      // for a self-funded or working student.
-      const d = answers.disbursement;
-      if (d && !d.none && Number(d.amount) > 0 && d.expected_on) {
-        try {
-          await disbursementsApi.create({
-            label: "Financial aid",
-            amount: Number(d.amount),
-            expected_on: d.expected_on,
-          });
-          await disbH.reload();
-        } catch { /* correctable later in Settings */ }
-      }
 
-      const h = parseFloat(answers.housing);
-      // Awaited and caught: previously this floated as an unhandled rejection,
-      // so a failed budget write during onboarding surfaced nowhere.
-      if (h > 0) {
-        try { await budgets.setBudgets(p => ({ ...p, Housing: h })); }
-        catch { /* non-fatal: onboarding still succeeded */ }
-      }
     } catch (e) {
       alert("Couldn't save your info — please try again. (" + e.message + ")");
     }
@@ -175,9 +146,11 @@ export default function App(){
   };
 
   const PAGE={
-    summary: ()=><Summary profile={profile} transactions={txn.transactions} goals={goals.goals}
+    summary: ()=><Summary profile={profile} user={authUser} setUser={setAuthUser}
+                   transactions={txn.transactions} goals={goals.goals}
                    points={rewards.points} accounts={accounts.accounts}
                    terms={termsH.terms} disbursements={disbH.disbursements}
+                   reloadDisbursements={disbH.reload}
                    loading={txn.loading} error={txn.error} reload={txn.reload}/>,
     budget: ()=><Budget transactions={txn.transactions}
                   budgets={budgets.budgets} setBudgets={budgets.setBudgets}

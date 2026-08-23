@@ -120,41 +120,32 @@ export const DEMO_BUDGETS = {
   Tuition:9000, HousingDeposit:1500, HealthInsurance:800, BooksSupplies:400, Moving:250,
 };
 
+/**
+ * Onboarding asks for the minimum that cannot be inferred or deferred.
+ *
+ * It used to ask eight questions. Three of them — financial goal, spending
+ * style, and a monthly income figure — were stored and then never read by any
+ * screen, which is friction that buys nothing and sits badly against the
+ * privacy policy's "minimum necessary" promise. Student type, term system and
+ * expected aid moved to a setup prompt on the Summary: they genuinely improve
+ * the runway, but the app is usable without them and there is no reason to
+ * block a first session on them.
+ *
+ * What is left is what nothing else can supply: a name, and the term the
+ * runway measures against.
+ */
 export const ONBOARDING_STEPS = [
   {id:"name", q:"What should we call you?", type:"text", placeholder:"Your first name"},
 
-  // Student type comes before dates because it changes the disbursement
-  // estimate materially: first-time first-year borrowers wait 30 days into the
-  // term for Direct Loan funds, everyone else does not.
-  {id:"studentType", q:"Where are you in your studies?", type:"choice",
-   choicesKey:"STUDENT_TYPES",
-   hint:"This changes when your aid actually reaches you — federal rules treat first-year borrowers differently."},
-
-  {id:"termSystem", q:"How does your school divide the year?", type:"choice",
-   choicesKey:"TERM_SYSTEMS",
-   hint:"Semester schools disburse aid twice a year; quarter schools three times."},
-
   {id:"term", q:"When does your current term run?", type:"daterange",
-   hint:"Everything in flo·w is measured against your term — how long your money has to last, and which costs are one-off."},
-
-  {id:"disbursement", q:"When does your aid arrive, and how much?", type:"disbursement",
-   hint:"We'll count your runway down to this date instead of the end of term, because that's when money actually has to reach."},
-
-  {id:"income", q:"Any regular income on top of that?", type:"money", placeholder:"e.g. 600",
-   hint:"A job, an allowance — anything that arrives every month. This drives your savings rate; lump-sum aid is handled by the runway instead.",
-   optional:true},
-
-  {id:"housing", q:"What's your monthly housing cost?", type:"money", placeholder:"e.g. 950"},
-
-  {id:"style", q:"How would you describe your spending?", type:"choice",
-   choices:["Frugal & intentional","Balanced","I like to treat myself","Spontaneous spender"]},
+   hint:"flo·w measures how long your money has to last against your term. You can change these dates any time in Settings."},
 ];
 
 export const PRIVACY_SECTIONS = [
   {title:"The short version",         body:"• We collect only what we need to make the app work for you.\n• We do not sell your data. Ever. To anyone.\n• We do not use your financial data to train AI models or for advertising.\n• You can export or delete everything we have on you, at any time.\n• If something changes, we'll tell you clearly before it takes effect."},
   // Keep in sync with §2a of flow-privacy-policy.md — this is the same
   // disclosure, and the two disagreeing is itself a compliance problem.
-  {title:"What we collect and why",   body:"Name: to personalise your experience.\n\nEmail address: to identify your account, sign you in, and contact you about account or security issues.\n\nPhone number (optional): to secure your account with multi-factor authentication. Never used for marketing.\n\nOnboarding answers (income, goals, spending style): to set up your budget.\n\nTransactions you enter: to power your budget, breakdowns, and goal tracking.\n\nBank data (if connected): retrieved via a secure financial data provider (e.g. Plaid). We never see your bank username or password. You can disconnect at any time in Settings.\n\nApp diagnostics (crash logs, OS version): to fix bugs only. We do not access your location, contacts, camera, or microphone."},
+  {title:"What we collect and why",   body:"Name: to personalise your experience.\n\nEmail address: to identify your account, sign you in, and contact you about account or security issues.\n\nPhone number (optional): to secure your account with multi-factor authentication. Never used for marketing.\n\nYour term dates, and optionally your course stage and expected aid: to work out how long your money has to last.\n\nTransactions you enter: to power your budget, breakdowns, and goal tracking.\n\nBank data (if connected): retrieved via a secure financial data provider (e.g. Plaid). We never see your bank username or password. You can disconnect at any time in Settings.\n\nApp diagnostics (crash logs, OS version): to fix bugs only. We do not access your location, contacts, camera, or microphone."},
   {title:"How we use your information",body:"Your data serves exactly one purpose: making flo·w useful to you.\n\nWe use it to show your spending summaries, budget progress, and goal tracking; generate alerts; calculate your financial health score and rewards; send notifications you've opted into; and improve the app from anonymised aggregate patterns.\n\nWe do NOT use your data to train AI models, serve ads, build third-party profiles, or make automated decisions affecting your finances."},
   {title:"Who we share your data with",body:"We share the minimum necessary with service providers who help us operate the app. Every provider is contractually prohibited from using your data for anything beyond the specific service they provide.\n\nWe do not share with advertisers, data brokers, or other users."},
   {title:"Your rights and controls",  body:"Access: request a full export via Settings → Privacy.\n\nDeletion: delete your account and all data via Settings → Privacy → Delete my account. Data permanently removed within 30 days.\n\nCalifornia residents (CCPA): right to know, delete, opt out of sale (we don't sell it), and non-discrimination. We extend these rights to all users."},

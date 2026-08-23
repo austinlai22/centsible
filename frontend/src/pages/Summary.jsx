@@ -4,8 +4,9 @@ import { fmt, fmtDec, formatDate } from "../lib/format.js";
 import { catSpendMap, getLevelInfo, periodTotals, MONTH_NAMES } from "../lib/periods.js";
 import { Card, ErrorBanner, SyncBanner, SkeletonCard, SkeletonList } from "../components/ui.jsx";
 import { RunwayCard } from "../components/RunwayCard.jsx";
+import { SetupCard } from "../components/SetupCard.jsx";
 
-export default function Summary({profile,transactions,goals,points,accounts,terms,disbursements,loading,error,reload}){
+export default function Summary({profile,user,setUser,transactions,goals,points,accounts,terms,disbursements,reloadDisbursements,loading,error,reload}){
   // Skeleton only on the very first load, before any data (including the demo
   // fallback) exists — once anything is present, prefer showing it even while
   // a background reload is in flight.
@@ -74,6 +75,9 @@ export default function Summary({profile,transactions,goals,points,accounts,term
           ))}
         </div>
       </div>
+
+      <SetupCard user={user} setUser={setUser} termStart={terms?.[0]?.start_date}
+        reloadDisbursements={reloadDisbursements}/>
 
       <RunwayCard transactions={transactions} accounts={accounts} refDate={now}
         terms={terms} disbursements={disbursements}/>
