@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "smoke": "esbuild scripts/smoke.jsx --bundle --platform=node --format=cjs --jsx=automatic --outfile=node_modules/.cache/smoke.cjs --log-level=error && node node_modules/.cache/smoke.cjs"
+    "smoke": "esbuild scripts/smoke.jsx --bundle --platform=node --format=cjs --jsx=automatic --outfile=node_modules/.cache/smoke.cjs --log-level=error && node node_modules/.cache/smoke.cjs",
+    "test:runway": "node scripts/test-runway.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { authApi } from "./api.js";
+import { authApi, termsApi } from "./api.js";
 import { CSS, S } from "./styles.js";
 import { NAV } from "./constants.js";
 import { getLevelInfo } from "./lib/periods.js";
@@ -10,6 +10,7 @@ import { useAccounts }     from "./hooks/useApi.js";
 import { useGoals }        from "./hooks/useGoals.js";
 import { useBudgets }      from "./hooks/useBudgets.js";
 import { useRewards }      from "./hooks/useRewards.js";
+import { useTerms, useDisbursements } from "./hooks/useCalendar.js";
 
 // Auth and onboarding are needed on first paint for a signed-out visitor, so
 // they stay in the main bundle. Everything below only renders after a
@@ -61,6 +62,8 @@ export default function App(){
   const goals    = useGoals(authed);
   const budgets  = useBudgets(authed);
   const rewards  = useRewards(authed);
+  const termsH   = useTerms(authed);
+  const disbH    = useDisbursements(authed);
 
   useEffect(()=>{
     authApi.me()
@@ -83,6 +86,22 @@ export default function App(){
         spendingStyle: answers.style,
       });
       setAuthUser(res.user);
+
+      // Persist the term they entered, if they gave one. Non-fatal: onboarding
+      // has already succeeded on the server, and the runway falls back to the
+      // built-in calendar until they set this in Settings.
+      if (answers.term?.start && answers.term?.end) {
+        try {
+          const year = new Date(answers.term.start + "T12:00:00").getFullYear();
+          await termsApi.create({
+            name: `Term ${year}`,
+            start_date: answers.term.start,
+            end_date: answers.term.end,
+          });
+          await termsH.reload();
+        } catch { /* correctable later in Settings */ }
+      }
+
       const h = parseFloat(answers.housing);
       // Awaited and caught: previously this floated as an unhandled rejection,
       // so a failed budget write during onboarding surfaced nowhere.
@@ -137,18 +156,22 @@ export default function App(){
   const PAGE={
     summary: ()=><Summary profile={profile} transactions={txn.transactions} goals={goals.goals}
                    points={rewards.points} accounts={accounts.accounts}
+                   terms={termsH.terms} disbursements={disbH.disbursements}
                    loading={txn.loading} error={txn.error} reload={txn.reload}/>,
     budget: ()=><Budget transactions={txn.transactions}
                   budgets={budgets.budgets} setBudgets={budgets.setBudgets}
                   budgetsLoading={budgets.loading} budgetsError={budgets.error} reloadBudgets={budgets.reload}
                   txnLoading={txn.loading} txnError={txn.error} reloadTxns={txn.reload}
                   period={budgets.period} setPeriod={budgets.setPeriod}
-                  refDate={budgets.refDate} setRefDate={budgets.setRefDate} goToToday={budgets.goToToday}/>,
+                  refDate={budgets.refDate} setRefDate={budgets.setRefDate} goToToday={budgets.goToToday}
+                  terms={termsH.terms}/>,
     transactions: ()=><Transactions {...txn}/>,
     goals:        ()=><Goals {...goals}/>,
     about:        ()=><About profile={profile} setProfile={setAuthUser} {...rewardProps}
                        accounts={accounts.accounts} accountsLoading={accounts.loading}
                        accountsError={accounts.error} reloadAccounts={accounts.reload}
+                       terms={termsH.terms} reloadTerms={termsH.reload}
+                       disbursements={disbH.disbursements} reloadDisbursements={disbH.reload}
                        onLogout={handleLogout}/>,
   };
   const Page=PAGE[tab]||PAGE.summary;

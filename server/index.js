@@ -25,6 +25,7 @@ import plaidRouter   from "./routes/plaid.js";
 import dataRouter    from "./routes/data.js";
 import rewardsRouter from "./routes/rewards.js";
 import mfaRouter     from "./routes/mfa.js";
+import calendarRouter from "./routes/calendar.js";
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -161,6 +162,7 @@ app.use((req, res, next) => {
 app.use("/auth/mfa", mfaRouter);
 app.use("/auth",  authRouter);
 app.use("/plaid", plaidRouter);
+app.use("/api",   calendarRouter);   // terms + disbursements
 app.use("/api",   dataRouter);
 app.use("/api/rewards", rewardsRouter);
 

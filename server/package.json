@@ -12,7 +12,8 @@
     "test:identities": "node scripts/test-identities.mjs",
     "test:totp": "node scripts/test-totp.mjs",
     "test:mfa": "bash scripts/test-mfa.sh",
-    "test:api": "bash scripts/test-api.sh"
+    "test:api": "bash scripts/test-api.sh",
+    "test:calendar": "bash scripts/test-calendar.sh"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

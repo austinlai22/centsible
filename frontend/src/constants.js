@@ -118,7 +118,16 @@ export const DEMO_BUDGETS = {
 
 export const ONBOARDING_STEPS = [
   {id:"name",   q:"What should we call you?",              type:"text",  placeholder:"Your first name"},
-  {id:"income", q:"What's your monthly take-home income?", type:"money", placeholder:"e.g. 4500"},
+  // Term dates come first among the financial questions because everything
+  // downstream is windowed by them — the runway, the semester budgets, and
+  // which term a one-off cost belongs to. Skippable: the built-in US semester
+  // calendar is a reasonable default and can be corrected later in settings.
+  {id:"term",   q:"When does your current term run?",      type:"daterange",
+   hint:"Your runway counts down to the end of term. Skip if you're not sure — you can set this later in Settings.",
+   optional:true},
+  {id:"income", q:"What's your monthly take-home income?", type:"money", placeholder:"e.g. 4500",
+   hint:"If your money arrives as a lump sum instead, leave this blank and add it as an expected payment later.",
+   optional:true},
   {id:"goal",   q:"What's your primary financial goal?",   type:"choice",choices:["Save for a big purchase","Pay off debt","Build an emergency fund","Invest more","Just track spending"]},
   {id:"housing",q:"What's your monthly housing cost?",     type:"money", placeholder:"e.g. 1500"},
   {id:"style",  q:"How would you describe your spending?", type:"choice",choices:["Frugal & intentional","Balanced","I like to treat myself","Spontaneous spender"]},

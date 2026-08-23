@@ -5,7 +5,7 @@ import { catSpendMap, getLevelInfo, periodTotals, MONTH_NAMES } from "../lib/per
 import { Card, ErrorBanner, SyncBanner, SkeletonCard, SkeletonList } from "../components/ui.jsx";
 import { RunwayCard } from "../components/RunwayCard.jsx";
 
-export default function Summary({profile,transactions,goals,points,accounts,loading,error,reload}){
+export default function Summary({profile,transactions,goals,points,accounts,terms,disbursements,loading,error,reload}){
   // Skeleton only on the very first load, before any data (including the demo
   // fallback) exists — once anything is present, prefer showing it even while
   // a background reload is in flight.
@@ -37,7 +37,7 @@ export default function Summary({profile,transactions,goals,points,accounts,load
   // by this semester. Spreading a second "semester" map over it overwrote the
   // monthly figures with semester-to-date totals, so the breakdown silently
   // disagreed with the "Spent this month" tile beside it.
-  const spend   = catSpendMap(transactions,"monthly",now);
+  const spend   = catSpendMap(transactions,"monthly",now,terms);
   const topCats = Object.entries(spend).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const recent  = [...(transactions||[])].sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,5);
   const {cur:lvl}= getLevelInfo(points);
@@ -75,7 +75,8 @@ export default function Summary({profile,transactions,goals,points,accounts,load
         </div>
       </div>
 
-      <RunwayCard transactions={transactions} accounts={accounts} refDate={now}/>
+      <RunwayCard transactions={transactions} accounts={accounts} refDate={now}
+        terms={terms} disbursements={disbursements}/>
 
       <div className="grid-stats">
         <Card>

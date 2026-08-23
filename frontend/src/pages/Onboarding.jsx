@@ -16,15 +16,23 @@ export function Onboarding({onComplete}){
 
   useEffect(()=>{
     if(isPrivacyStep) return;
-    setVal(answers[ONBOARDING_STEPS[step].id] ?? "");
+    const stepDef = ONBOARDING_STEPS[step];
+    setVal(answers[stepDef.id] ?? (stepDef.type==="daterange" ? {start:"",end:""} : ""));
     const t=setTimeout(()=>inputRef.current?.focus(),60);
     return ()=>clearTimeout(t); // otherwise focus fires after unmount
   },[step]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const isRange = cur?.type==="daterange";
+  // A date range is two values, so this step's answer is an object.
+  const rangeOk = isRange && val?.start && val?.end && val.end > val.start;
+  const canAdvance = cur?.optional || (isRange ? rangeOk : String(val ?? "").trim().length > 0);
+
   const next=()=>{
-    const v=val.trim();
-    if(!v) return;
-    setAnswers(a=>({...a,[cur.id]:v}));
+    if(!canAdvance) return;
+    const v = isRange ? val : String(val ?? "").trim();
+    // Optional steps may be skipped outright; don't store an empty answer.
+    const empty = isRange ? !rangeOk : !v;
+    setAnswers(a => empty ? a : ({...a,[cur.id]:v}));
     setStep(s=>s+1);
   };
   // Answers are kept in state, so stepping back and forward preserves them.
@@ -47,7 +55,10 @@ export function Onboarding({onComplete}){
           {!isPrivacyStep?(
             <div key={step} className="slide-up" style={{background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.09)",borderRadius:20,padding:"38px 34px"}}>
               <p style={{color:"var(--hero-muted)",fontSize:12,marginBottom:10,textTransform:"uppercase",letterSpacing:"1.2px"}}>{step+1} of {totalSteps}</p>
-              <h2 style={{...S.display,color:"var(--hero-ink)",fontSize:25,fontWeight:400,marginBottom:28,lineHeight:1.35}}>{cur.q}</h2>
+              <h2 style={{...S.display,color:"var(--hero-ink)",fontSize:25,fontWeight:400,marginBottom:cur.hint?10:28,lineHeight:1.35}}>{cur.q}</h2>
+              {cur.hint && (
+                <p style={{color:"var(--hero-muted)",fontSize:13,lineHeight:1.6,marginBottom:24}}>{cur.hint}</p>
+              )}
 
               {cur.type==="text"&&(
                 <input ref={inputRef} value={val} onChange={e=>setVal(e.target.value)}
@@ -60,6 +71,24 @@ export function Onboarding({onComplete}){
                   <input ref={inputRef} value={val} onChange={e=>setVal(e.target.value.replace(/[^0-9.]/g,""))}
                     onKeyDown={e=>e.key==="Enter"&&next()} placeholder={cur.placeholder} inputMode="decimal"
                     style={{...IS,paddingLeft:36}}/>
+                </div>
+              )}
+
+              {cur.type==="daterange"&&(
+                <div style={{...S.col,gap:12}}>
+                  <div>
+                    <label htmlFor="ob-start" style={{...S.label,color:"var(--hero-muted)"}}>Term starts</label>
+                    <input id="ob-start" ref={inputRef} type="date" value={val?.start||""}
+                      onChange={e=>setVal(v=>({...(v||{}),start:e.target.value}))} style={IS}/>
+                  </div>
+                  <div>
+                    <label htmlFor="ob-end" style={{...S.label,color:"var(--hero-muted)"}}>Term ends</label>
+                    <input id="ob-end" type="date" value={val?.end||""}
+                      onChange={e=>setVal(v=>({...(v||{}),end:e.target.value}))} style={IS}/>
+                  </div>
+                  {val?.start && val?.end && val.end <= val.start && (
+                    <p style={{fontSize:12,color:"var(--danger-on-hero)"}}>The end date needs to be after the start date.</p>
+                  )}
                 </div>
               )}
 
@@ -81,9 +110,9 @@ export function Onboarding({onComplete}){
                     ← Back
                   </button>
                 )}
-                <button type="button" onClick={next} disabled={!val.trim()}
-                  style={{...S.darkBtn(),background:val.trim()?"var(--hero-accent)":"rgba(255,255,255,.08)",color:val.trim()?"var(--hero)":"var(--hero-muted)",borderRadius:12,cursor:val.trim()?"pointer":"default",transition:"all .2s"}}>
-                  Continue →
+                <button type="button" onClick={next} disabled={!canAdvance}
+                  style={{...S.darkBtn(),background:canAdvance?"var(--hero-accent)":"rgba(255,255,255,.08)",color:canAdvance?"var(--hero)":"var(--hero-muted)",borderRadius:12,cursor:canAdvance?"pointer":"default",transition:"all .2s"}}>
+                  {cur.optional && (isRange ? !rangeOk : !String(val ?? "").trim()) ? "Skip for now →" : "Continue →"}
                 </button>
               </div>
             </div>

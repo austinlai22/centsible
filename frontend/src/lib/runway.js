@@ -15,8 +15,7 @@
  * LLM could phrase this more warmly but cannot make it more true.
  */
 
-import { semesterForDate } from "./periods.js";
-import { isTransfer } from "./periods.js";
+import { termForDate, isTransfer } from "./periods.js";
 
 const DAY = 86_400_000;
 const iso = (d) => d.toISOString().slice(0, 10);
@@ -31,13 +30,34 @@ const daysBetween = (a, b) => Math.round((new Date(b + "T00:00:00") - new Date(a
  * @param {Date}     refDate       "today"
  * @param {number}   burnWindowDays trailing window for the burn rate
  */
-export function computeRunway(transactions = [], accounts = [], refDate = new Date(), burnWindowDays = 30) {
-  const term  = semesterForDate(refDate);
+export function computeRunway(transactions = [], accounts = [], refDate = new Date(), opts = {}) {
+  const { burnWindowDays = 30, terms = null, disbursements = [] } = opts;
+
+  const term  = termForDate(refDate, terms);
   const today = iso(refDate);
 
-  const daysTotal     = daysBetween(term.start, term.end);
+  /**
+   * What the money actually has to reach.
+   *
+   * Term end is the fallback, but it is rarely the real deadline. A student is
+   * not trying to survive until the semester is over — they are trying to
+   * survive until the next aid payment lands, which is usually sooner and is
+   * the date they actually feel. Targeting term end when a disbursement is due
+   * six weeks earlier overstates how long the money must stretch, and quietly
+   * makes an unaffordable daily allowance look affordable.
+   */
+  const nextDisbursement = (disbursements || [])
+    .filter(d => !d.received_on && d.expected_on > today)
+    .sort((a, b) => a.expected_on.localeCompare(b.expected_on))[0] || null;
+
+  const horizonDate = nextDisbursement && nextDisbursement.expected_on < term.end
+    ? nextDisbursement.expected_on
+    : term.end;
+  const horizonKind = horizonDate === term.end ? "term-end" : "disbursement";
+
+  const daysTotal     = daysBetween(term.start, horizonDate);
   const daysElapsed   = Math.max(0, Math.min(daysTotal, daysBetween(term.start, today)));
-  const daysRemaining = Math.max(0, daysTotal - daysElapsed);
+  const daysRemaining = Math.max(0, daysBetween(today, horizonDate));
 
   // Transactions inside this term, transfers excluded — moving money between
   // your own accounts is neither income nor spending.
@@ -102,7 +122,8 @@ export function computeRunway(transactions = [], accounts = [], refDate = new Da
   const hasEnoughData = inTerm.length > 0 && daysElapsed >= 3;
 
   return {
-    term, daysTotal, daysElapsed, daysRemaining,
+    term, horizonDate, horizonKind, nextDisbursement,
+    daysTotal, daysElapsed, daysRemaining,
     termIncome, termSpend,
     available, source,
     burnPerDay, allowancePerDay,

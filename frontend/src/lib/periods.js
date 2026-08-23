@@ -27,6 +27,32 @@ export function getLevelInfo(pts){
   return {cur,next,prog};
 }
 
+/**
+ * The term containing a date, preferring the user's OWN academic calendar.
+ *
+ * `terms` comes from GET /api/terms — rows the student entered at signup or in
+ * settings. The built-in US semester calendar below is only a fallback for
+ * accounts that haven't set one, because it is one system among many: quarter
+ * schools, trimesters, and non-US terms all break it, and a wrong term
+ * boundary produces a wrong runway, which is the number this app exists for.
+ *
+ * Shape matches semesterForDate exactly so every caller is indifferent to
+ * which source answered.
+ */
+export function termForDate(date = new Date(), terms = null){
+  if (Array.isArray(terms) && terms.length) {
+    const iso = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
+    const hit = terms.find(t => iso >= t.start_date && iso < t.end_date);
+    if (hit) return { name: hit.name, start: hit.start_date, end: hit.end_date, source: "user" };
+
+    // Between terms (a summer break, say) the nearest upcoming term is the
+    // honest answer — spending now still has to reach it.
+    const upcoming = terms.filter(t => t.start_date > iso).sort((a,b)=>a.start_date.localeCompare(b.start_date))[0];
+    if (upcoming) return { name: upcoming.name, start: upcoming.start_date, end: upcoming.end_date, source: "user-upcoming" };
+  }
+  return { ...semesterForDate(date), source: "default" };
+}
+
 /** Given a Date, returns { name, start, end } for the semester containing it. */
 export function semesterForDate(date=new Date()){
   const y=date.getFullYear();
@@ -50,11 +76,11 @@ export function semesterForDate(date=new Date()){
  * day count — Winter is ~1 month while Fall/Spring are ~4, so any fixed jump
  * would overshoot or undershoot depending on direction.
  */
-export function shiftSemester(refDate, direction){
-  const cur = semesterForDate(refDate);
+export function shiftSemester(refDate, direction, terms=null){
+  const cur = termForDate(refDate, terms);
   const boundary = direction>0 ? new Date(cur.end+"T12:00:00") : new Date(cur.start+"T12:00:00");
   const landing = new Date(boundary.getTime() + direction*86400000);
-  return semesterForDate(landing);
+  return termForDate(landing, terms);
 }
 
 /** Formats a Date as "YYYY-MM-01" — the server's month key. */
@@ -76,8 +102,8 @@ export function shiftMonth(refDate, direction){
  * so it stays correct if semesterForDate's boundaries ever change.
  * Verified: Fall≈4.01, Winter≈1.02, Spring≈3.94, Summer≈3.02.
  */
-export function semesterMonthCount(refDate=new Date()){
-  const sem=semesterForDate(refDate);
+export function semesterMonthCount(refDate=new Date(), terms=null){
+  const sem=termForDate(refDate, terms);
   const start=new Date(sem.start+"T00:00:00");
   const end=new Date(sem.end+"T00:00:00");
   return ((end-start)/86400000)/30.44;
@@ -97,8 +123,8 @@ export function semesterMonthCount(refDate=new Date()){
  * shifted ISO timestamps, which could bucket a transaction into the wrong
  * month at a boundary).
  */
-export function catSpendMap(transactions, activeView="monthly", refDate=new Date()){
-  const sem=semesterForDate(refDate);
+export function catSpendMap(transactions, activeView="monthly", refDate=new Date(), terms=null){
+  const sem=termForDate(refDate, terms);
   const y=refDate.getFullYear(), mo=refDate.getMonth();
   const monthStart=`${y}-${String(mo+1).padStart(2,"0")}-01`;
   const nextM=new Date(y,mo+1,1);

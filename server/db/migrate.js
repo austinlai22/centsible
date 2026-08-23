@@ -332,6 +332,51 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_user_budgets_unique
 
 CREATE INDEX IF NOT EXISTS idx_user_budgets_user_id ON user_budgets(user_id, month);
 
+-- ── user_terms ────────────────────────────────────────────────────────────────
+-- The academic calendar was hardcoded to Aug 15 / Dec 15 / Jan 15 / May 15,
+-- which is one US semester system among many. Quarter schools, trimesters, UK
+-- and Australian terms, and plenty of individual universities do not match it,
+-- and a student whose term boundaries are wrong gets a wrong runway — the
+-- number this app exists to produce.
+--
+-- Terms are per-user rows. A user with none defined falls back to the built-in
+-- calendar, so existing accounts keep working unchanged.
+CREATE TABLE IF NOT EXISTS user_terms (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name        TEXT        NOT NULL,          -- "Fall 2026", "Michaelmas", "Q1"
+  start_date  DATE        NOT NULL,
+  end_date    DATE        NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (end_date > start_date),
+  -- One term per start date per user; re-adding the same term updates it.
+  UNIQUE (user_id, start_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_terms_user ON user_terms(user_id, start_date);
+
+-- ── user_disbursements ────────────────────────────────────────────────────────
+-- A financial-aid refund is not "a large transaction" — it is the event the
+-- whole runway hangs off. Knowing when the NEXT one lands changes the question
+-- from "will this last to the end of term" to "will this last until I am paid
+-- again", which is the one a student actually asks.
+--
+-- expected_on is the planned date; received_on is set once it actually arrives,
+-- so a late disbursement is visibly late rather than silently assumed.
+CREATE TABLE IF NOT EXISTS user_disbursements (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  label        TEXT        NOT NULL,
+  amount       NUMERIC(12,2) NOT NULL CHECK (amount > 0),
+  expected_on  DATE        NOT NULL,
+  received_on  DATE,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_disbursements_user ON user_disbursements(user_id, expected_on);
+
 -- ── user_goals ────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS user_goals (
   id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -402,7 +447,8 @@ DECLARE
 BEGIN
   FOREACH t IN ARRAY ARRAY[
     'users','plaid_items','accounts','transactions',
-    'user_budgets','user_goals','rewards','user_mfa_factors'
+    'user_budgets','user_goals','rewards','user_mfa_factors',
+    'user_terms','user_disbursements'
   ] LOOP
     EXECUTE format(
       'DROP TRIGGER IF EXISTS trg_%1$s_updated_at ON %1$s;

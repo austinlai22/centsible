@@ -142,5 +142,55 @@ t("no lever when the student is on track", () => {
   if (topLever(txns, r, FALL_MID)) throw new Error("nagged a student who is fine");
 });
 
+console.log("\n=== user-defined terms replace the built-in calendar ===");
+const UK_TERMS = [{ name:"Michaelmas", start_date:"2026-10-05", end_date:"2026-12-11" }];
+t("a quarter/UK student gets THEIR term, not the US semester", () => {
+  const r = computeRunway([], [], new Date(2026,10,1), { terms: UK_TERMS });
+  if (r.term.name !== "Michaelmas") throw new Error(`got ${r.term.name}`);
+  if (r.term.end !== "2026-12-11") throw new Error(`end ${r.term.end}`);
+});
+t("falls back to the built-in calendar when none are set", () => {
+  const r = computeRunway([], [], new Date(2026,10,1), { terms: [] });
+  if (r.term.name !== "Fall" || r.term.end !== "2026-12-15") throw new Error(JSON.stringify(r.term));
+});
+t("wrong term boundaries would change the allowance materially", () => {
+  const txns = [tx("2026-10-06", 3000, "Other", "income"), ...daily("2026-10-06","2026-11-01",40)];
+  const mine    = computeRunway(txns, [], new Date(2026,10,1), { terms: UK_TERMS });
+  const default_= computeRunway(txns, [], new Date(2026,10,1), { terms: [] });
+  if (mine.daysRemaining === default_.daysRemaining) throw new Error("expected different horizons");
+  console.log(`          own term: ${mine.daysRemaining} days left · built-in: ${default_.daysRemaining} — ` +
+              `allowance $${mine.allowancePerDay.toFixed(2)} vs $${default_.allowancePerDay.toFixed(2)}/day`);
+});
+
+console.log("\n=== the horizon is the next disbursement, not term end ===");
+const DISB = [
+  { label:"Spring aid", amount:7000, expected_on:"2026-11-10", received_on:null },
+  { label:"Old one",    amount:5000, expected_on:"2026-08-18", received_on:"2026-08-18" },
+];
+t("targets an upcoming disbursement when it lands before term end", () => {
+  const r = computeRunway([], [], FALL_MID, { disbursements: DISB });
+  if (r.horizonKind !== "disbursement") throw new Error(`kind ${r.horizonKind}`);
+  if (r.horizonDate !== "2026-11-10") throw new Error(`date ${r.horizonDate}`);
+});
+t("ignores disbursements already received", () => {
+  const past = [{ label:"Done", amount:5000, expected_on:"2026-08-18", received_on:"2026-08-18" }];
+  const r = computeRunway([], [], FALL_MID, { disbursements: past });
+  if (r.horizonKind !== "term-end") throw new Error("a received disbursement became the horizon");
+});
+t("falls back to term end when the next one lands after it", () => {
+  const late = [{ label:"Next year", amount:7000, expected_on:"2027-01-20", received_on:null }];
+  const r = computeRunway([], [], FALL_MID, { disbursements: late });
+  if (r.horizonKind !== "term-end") throw new Error(`kind ${r.horizonKind}`);
+});
+t("a nearer horizon makes the SAME money stretch less far per day", () => {
+  const txns = [tx("2026-08-20", 8400, "Other", "income"), ...daily("2026-08-20","2026-10-15",50)];
+  const toTerm = computeRunway(txns, [], FALL_MID, {});
+  const toDisb = computeRunway(txns, [], FALL_MID, { disbursements: DISB });
+  if (!(toDisb.allowancePerDay > toTerm.allowancePerDay))
+    throw new Error("a closer payday should raise the daily allowance");
+  console.log(`          to term end (${toTerm.daysRemaining}d): $${toTerm.allowancePerDay.toFixed(2)}/day · ` +
+              `to next aid (${toDisb.daysRemaining}d): $${toDisb.allowancePerDay.toFixed(2)}/day`);
+});
+
 console.log(`\n  PASSED: ${pass}   FAILED: ${fail}`);
 process.exit(fail ? 1 : 0);

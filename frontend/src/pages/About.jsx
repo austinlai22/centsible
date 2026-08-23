@@ -7,13 +7,13 @@ import { getLevelInfo } from "../lib/periods.js";
 import { Card, Field, Sheet, MenuRow, Spinner, ErrorBanner, SkeletonList } from "../components/ui.jsx";
 import { PrivacyModal } from "../components/PrivacyModal.jsx";
 import { MfaSettings } from "../components/MfaSettings.jsx";
+import { TermsSettings, DisbursementsSettings } from "../components/CalendarSettings.jsx";
 import { RewardsContent } from "./Rewards.jsx";
 import { usePlaidLink } from "../hooks/usePlaidLink.js";
 
 export default function About({
   profile,setProfile,points,redeemed,earn,redeem,
-  accounts,accountsLoading,accountsError,reloadAccounts,onLogout,
-}){
+  accounts,accountsLoading,accountsError,reloadAccounts,onLogout,terms,reloadTerms,disbursements,reloadDisbursements}){
   const [section,setSection]=useState(null);
   const {cur,prog}=getLevelInfo(points);
   const [pForm,setPForm]=useState({
@@ -122,6 +122,13 @@ export default function About({
         </Card>
 
         <Card style={{padding:"0 20px"}}>
+          <SecLabel label="Study calendar"/>
+          <MenuRow icon="🎓" label="Terms & payments"
+            sub={terms?.length ? `${terms.length} term${terms.length===1?"":"s"} set` : "Using standard semester dates"}
+            onClick={open("calendar")} noBorder/>
+        </Card>
+
+        <Card style={{padding:"0 20px"}}>
           <SecLabel label="Security"/>
           <MenuRow icon="🔐" label="Two-factor authentication"
             sub="Require a code from your phone at sign-in"
@@ -215,6 +222,15 @@ export default function About({
           onClose={close}>
           <div style={{overflowY:"auto",flex:1,minHeight:0,padding:"16px 16px calc(36px + env(safe-area-inset-bottom))"}}>
             <RewardsContent points={points} redeemed={redeemed} earn={earn} redeem={redeem} startOnRedeem={section==="redeem"}/>
+          </div>
+        </Sheet>
+      )}
+
+      {section==="calendar"&&(
+        <Sheet title="Study calendar" subtitle="Term dates and expected payments" onClose={close}>
+          <div style={{overflowY:"auto",flex:1,minHeight:0,padding:"4px 16px calc(36px + env(safe-area-inset-bottom))"}}>
+            <TermsSettings terms={terms} reload={reloadTerms}/>
+            <DisbursementsSettings disbursements={disbursements} reload={reloadDisbursements}/>
           </div>
         </Sheet>
       )}

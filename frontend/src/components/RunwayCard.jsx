@@ -27,10 +27,14 @@ const prettyDate = (isoStr) => {
   return d.toLocaleDateString("en-US", { month:"short", day:"numeric" });
 };
 
-export function RunwayCard({ transactions, accounts, refDate = new Date() }) {
-  const r = computeRunway(transactions, accounts, refDate);
+export function RunwayCard({ transactions, accounts, refDate = new Date(), terms = null, disbursements = [] }) {
+  const r = computeRunway(transactions, accounts, refDate, { terms, disbursements });
   const tone = TONE[r.status] || TONE.unknown;
-  const termEnd = prettyDate(r.term.end);
+  // What the money has to reach: the next aid payment if one is due before the
+  // term ends, otherwise the end of term itself.
+  const horizonLabel = r.horizonKind === "disbursement"
+    ? `${prettyDate(r.horizonDate)} (${r.nextDisbursement.label})`
+    : prettyDate(r.horizonDate);
 
   // Say nothing rather than project from noise. A confident-looking number
   // built on two transactions is worse than an honest prompt.
@@ -43,7 +47,7 @@ export function RunwayCard({ transactions, accounts, refDate = new Date() }) {
               Runway · {r.term.name} term
             </p>
             <p style={{...S.display,fontSize:24,fontWeight:700,marginTop:6}}>
-              {r.daysRemaining} days to {termEnd}
+              {r.daysRemaining} days to {horizonLabel}
             </p>
             <p style={{fontSize:13,color:"var(--muted)",marginTop:6,lineHeight:1.55,maxWidth:460}}>
               Log a few days of spending — or link a bank — and this will show how long
@@ -78,14 +82,14 @@ export function RunwayCard({ transactions, accounts, refDate = new Date() }) {
                 {r.daysOfRunway} days
               </p>
               <p style={{fontSize:13,color:"var(--muted)",marginTop:2}}>
-                of money, but <strong style={{color:"var(--ink)"}}>{r.daysRemaining} days</strong> left to {termEnd}
+                of money, but <strong style={{color:"var(--ink)"}}>{r.daysRemaining} days</strong> left to {horizonLabel}
               </p>
             </>
           ) : r.status === "empty" ? (
             <>
               <p className="tnum" style={{...S.display,fontSize:34,fontWeight:700,marginTop:4,color:tone.color}}>{fmt(0)}</p>
               <p style={{fontSize:13,color:"var(--muted)",marginTop:2}}>
-                left, with <strong style={{color:"var(--ink)"}}>{r.daysRemaining} days</strong> to {termEnd}
+                left, with <strong style={{color:"var(--ink)"}}>{r.daysRemaining} days</strong> to {horizonLabel}
               </p>
             </>
           ) : (
@@ -94,7 +98,7 @@ export function RunwayCard({ transactions, accounts, refDate = new Date() }) {
                 {r.daysRemaining} days
               </p>
               <p style={{fontSize:13,color:"var(--muted)",marginTop:2}}>
-                to {termEnd} — <strong style={{color:"var(--ink)"}}>covered</strong> at your current rate
+                to {horizonLabel} — <strong style={{color:"var(--ink)"}}>covered</strong> at your current rate
               </p>
             </>
           )}
@@ -128,7 +132,8 @@ export function RunwayCard({ transactions, accounts, refDate = new Date() }) {
         <div style={{background:tone.bg,border:`1px solid ${tone.line}`,borderRadius:"var(--r-md)",padding:"12px 14px",marginTop:14}}>
           <p style={{fontSize:13,color:tone.color,lineHeight:1.6}}>
             At this rate your money runs out <strong>{prettyDate(r.runsOutOn)}</strong> —{" "}
-            {Math.abs(r.slackDays)} days before the term ends.
+            {Math.abs(r.slackDays)} days before{" "}
+            {r.horizonKind === "disbursement" ? "your next payment arrives" : "the term ends"}.
             {lever && (
               <> Spending {fmtDec(Math.abs(r.dailyAdjustment))}/day less closes the gap
                 {lever.dropPerWeek > 0 && (
@@ -143,7 +148,7 @@ export function RunwayCard({ transactions, accounts, refDate = new Date() }) {
 
       {r.status === "comfortable" && Number.isFinite(r.slackDays) && r.slackDays > 0 && (
         <p style={{fontSize:12,color:"var(--muted)",marginTop:12,lineHeight:1.6}}>
-          At this rate you reach {termEnd} with about <strong style={{color:"var(--ink)"}}>
+          At this rate you reach {horizonLabel} with about <strong style={{color:"var(--ink)"}}>
           {fmt(r.available - r.burnPerDay * r.daysRemaining)}</strong> to spare.
         </p>
       )}

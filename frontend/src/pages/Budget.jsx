@@ -3,7 +3,7 @@ import { S } from "../styles.js";
 import { CATEGORY_META, categoryLabel } from "../constants.js";
 import { fmt, fmtDec, pct } from "../lib/format.js";
 import {
-  catSpendMap, semesterForDate, semesterMonthCount,
+  catSpendMap, termForDate, semesterMonthCount,
   shiftSemester, shiftMonth, monthKey, MONTH_NAMES,
 } from "../lib/periods.js";
 import { Card, SpendBar, ErrorBanner, SkeletonCard, SkeletonList } from "../components/ui.jsx";
@@ -12,7 +12,7 @@ export default function Budget({
   transactions, budgets, setBudgets,
   budgetsLoading, budgetsError, reloadBudgets,
   txnLoading, txnError, reloadTxns,
-  period, setPeriod, refDate, setRefDate, goToToday,
+  period, setPeriod, refDate, setRefDate, goToToday, terms,
 }){
   const [editing,setEditing]=useState(null);
   const [editErr,setEditErr]=useState("");
@@ -26,11 +26,11 @@ export default function Budget({
     );
   }
 
-  const semInfo    = semesterForDate(refDate);
-  const spend      = catSpendMap(transactions, period, refDate);
-  const monthCount = semesterMonthCount(refDate); // ~4.01 Fall, ~1.02 Winter
+  const semInfo    = termForDate(refDate, terms);
+  const spend      = catSpendMap(transactions, period, refDate, terms);
+  const monthCount = semesterMonthCount(refDate, terms); // ~4.01 Fall, ~1.02 Winter
   const isCurrentPeriod = period==="semester"
-    ? semInfo.start===semesterForDate(new Date()).start
+    ? semInfo.start===termForDate(new Date(), terms).start
     : monthKey(refDate)===monthKey(new Date());
 
   // Savings is a transfer between the user's own accounts, not a spending
@@ -89,8 +89,8 @@ export default function Budget({
   const label = period==="semester"
     ? `${semInfo.name} ${new Date(semInfo.start+"T12:00:00").getFullYear()}`
     : `${MONTH_NAMES[refDate.getMonth()]} ${refDate.getFullYear()}`;
-  const goPrev=()=>setRefDate(period==="semester" ? new Date(shiftSemester(refDate,-1).start+"T12:00:00") : shiftMonth(refDate,-1));
-  const goNext=()=>setRefDate(period==="semester" ? new Date(shiftSemester(refDate, 1).start+"T12:00:00") : shiftMonth(refDate, 1));
+  const goPrev=()=>setRefDate(period==="semester" ? new Date(shiftSemester(refDate,-1,terms).start+"T12:00:00") : shiftMonth(refDate,-1));
+  const goNext=()=>setRefDate(period==="semester" ? new Date(shiftSemester(refDate, 1,terms).start+"T12:00:00") : shiftMonth(refDate, 1));
 
   return(
     <div className="slide-up" style={{...S.col,gap:16}}>

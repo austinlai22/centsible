@@ -262,6 +262,24 @@ export const authApi = {
     api.post("/auth/refresh", {}),
 };
 
+// ─── Academic calendar ───────────────────────────────────────────────────────
+// The student's own term dates and expected aid payments. Both feed the runway
+// calculation, which is meaningless with the wrong boundaries.
+
+export const termsApi = {
+  list:   ()           => api.get("/api/terms"),
+  create: (term)       => api.post("/api/terms", term),
+  update: (id, fields) => api.put(`/api/terms/${id}`, fields),
+  delete: (id)         => api.delete(`/api/terms/${id}`),
+};
+
+export const disbursementsApi = {
+  list:   ()           => api.get("/api/disbursements"),
+  create: (d)          => api.post("/api/disbursements", d),
+  update: (id, fields) => api.put(`/api/disbursements/${id}`, fields),
+  delete: (id)         => api.delete(`/api/disbursements/${id}`),
+};
+
 // ─── Two-factor authentication ───────────────────────────────────────────────
 
 export const mfaApi = {
