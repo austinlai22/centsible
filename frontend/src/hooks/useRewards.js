@@ -22,14 +22,18 @@ function decorate(row) {
   };
 }
 
-export function useRewards() {
+export function useRewards(enabled = true) {
   const { data: points, loading, error, reload } = useApi(
     async () => (await rewardsApi.get()).points,
-    340   // demo fallback when the backend is unreachable
+    340,  // demo fallback when the backend is unreachable
+    [],
+    enabled
   );
   const { data: history, reload: reloadHistory } = useApi(
     async () => ((await rewardsApi.history()).redemptions || []).map(decorate),
-    []
+    [],
+    [],
+    enabled
   );
 
   const [localPoints,  setLocalPoints]  = useState(null);

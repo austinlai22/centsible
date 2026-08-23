@@ -13,7 +13,7 @@ import { useApi } from "./useApi.js";
  * Toggling period is purely a DISPLAY concern handled by Budget's
  * displayBudget() — it does not refetch and does not change what's stored.
  */
-export function useBudgets() {
+export function useBudgets(enabled = true) {
   // Purely UI state: which number displayBudget() shows, and which window
   // catSpendMap() sums actual spend over.
   const [period, setPeriod] = useState("monthly"); // "monthly" | "semester"
@@ -33,7 +33,8 @@ export function useBudgets() {
       return Object.keys(res.budgets || {}).length > 0 ? res.budgets : DEMO_BUDGETS;
     },
     DEMO_BUDGETS,
-    [month, semester] // refetch when navigation moves to a different period
+    [month, semester], // refetch when navigation moves to a different period
+    enabled
   );
 
   const [local, setLocal] = useState(null);

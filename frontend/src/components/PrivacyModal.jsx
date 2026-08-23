@@ -1,10 +1,17 @@
 import { useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { S } from "../styles.js";
 import { PRIVACY_SECTIONS } from "../constants.js";
 
 /**
  * Privacy policy, shown either as a plain modal (from About) or as an
  * accept-gated step during onboarding (showAccept).
+ *
+ * Portal-rendered for the same reason as Sheet (components/ui.jsx): every
+ * page wraps its content in a div whose "slide-up" animation permanently
+ * leaves a `transform` on that ancestor (fill-mode: both), which otherwise
+ * traps this "fixed, full-viewport" modal inside that page's content box
+ * instead of the real browser viewport.
  */
 export function PrivacyModal({onClose,showAccept=false,onAccept}){
   const [scrolled,setScrolled]=useState(false);
@@ -16,7 +23,7 @@ export function PrivacyModal({onClose,showAccept=false,onAccept}){
     if(el.scrollTop+el.clientHeight>=el.scrollHeight-40) setScrolled(true);
   };
 
-  return(
+  return createPortal(
     <div className="fade-in sheet-backdrop" style={{zIndex:300}}>
       <div className="slide-up sheet-panel" role="dialog" aria-modal="true" aria-label="Privacy Policy">
         <div style={{padding:"22px 22px 14px",borderBottom:"1px solid var(--sand)",...S.between,gap:12,flexShrink:0}}>
@@ -52,6 +59,7 @@ export function PrivacyModal({onClose,showAccept=false,onAccept}){
         )}
         {!showAccept&&<div style={{height:12,flexShrink:0}}/>}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

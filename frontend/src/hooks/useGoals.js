@@ -4,10 +4,12 @@ import { DEMO_GOALS } from "../constants.js";
 import { useApi } from "./useApi.js";
 
 /** Savings goals with optimistic local mutations. */
-export function useGoals() {
+export function useGoals(enabled = true) {
   const { data: serverGoals, loading, error, reload } = useApi(
     async () => (await goalsApi.list()).goals,
-    DEMO_GOALS
+    DEMO_GOALS,
+    [],
+    enabled
   );
 
   const [local, setLocal] = useState(null);

@@ -12,7 +12,7 @@ import { useApi } from "./useApi.js";
  * update/delete only work on rows with source === "manual"; the server
  * returns 404 for Plaid-synced rows, so the UI disables those controls.
  */
-export function useTransactions() {
+export function useTransactions(enabled = true) {
   const { data: txns, loading, error, reload } = useApi(
     async () => {
       const res = await plaidApi.getTransactions({ limit: 200 });
@@ -24,7 +24,9 @@ export function useTransactions() {
         amount: Math.abs(Number(t.amount)),
       }));
     },
-    DEMO_TRANSACTIONS
+    DEMO_TRANSACTIONS,
+    [],
+    enabled
   );
 
   const [local, setLocal] = useState(null); // overrides server data after mutations

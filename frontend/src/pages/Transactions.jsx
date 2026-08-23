@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { plaidApi } from "../api.js";
 import { S } from "../styles.js";
 import { CATEGORY_META, categoryLabel } from "../constants.js";
 import { fmtDec, formatDate } from "../lib/format.js";
@@ -13,6 +14,29 @@ export default function Transactions({transactions,loading,error,reload,addTxn,u
   const [editId,setEditId]=useState(null);
   const [form,setForm]=useState(EMPTY_FORM);
   const [saving,setSaving]=useState(false);
+  // Separate from `loading` (which only covers the GET that reads what's
+  // already in our DB): this covers the round-trip to Plaid itself.
+  const [syncing,setSyncing]=useState(false);
+  const [syncErr,setSyncErr]=useState("");
+
+  /**
+   * The refresh button used to call only `reload` — a GET against our own
+   * database. That never asks Plaid for anything new, so newly-posted bank
+   * transactions could sit at Plaid forever without ever reaching this app;
+   * the only thing that pulls them in is POST /plaid/sync (wired here) or a
+   * webhook (needs a public URL — not available on localhost without ngrok).
+   */
+  const syncBank = async () => {
+    setSyncing(true); setSyncErr("");
+    try {
+      await plaidApi.sync();
+      await reload();
+    } catch (e) {
+      setSyncErr(e.message || "Couldn't sync your bank right now.");
+    } finally {
+      setSyncing(false);
+    }
+  };
   const [saveErr,setSaveErr]=useState("");
 
   const setF=k=>e=>setForm(p=>({...p,[k]:e.target.value}));
@@ -72,12 +96,14 @@ export default function Transactions({transactions,loading,error,reload,addTxn,u
   return(
     <div className="slide-up" style={{...S.col,gap:14}}>
       <ErrorBanner message={error} onRetry={reload}/>
+      <ErrorBanner message={syncErr} onRetry={syncBank}/>
 
       <div style={{...S.row,gap:10}}>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…" type="search" aria-label="Search transactions"
           style={{flex:1,minWidth:0,background:"#fff",border:"1px solid var(--sand)",borderRadius:12,padding:"11px 16px",fontSize:16,outline:"none"}}/>
-        <button onClick={reload} title="Refresh" aria-label="Refresh transactions" style={S.sandBtn({padding:"11px 13px",fontSize:16,minHeight:44})}>
-          {loading?<Spinner size={14}/>:"↻"}
+        <button onClick={syncBank} disabled={syncing} title="Sync from bank" aria-label="Sync transactions from your linked bank"
+          style={S.sandBtn({padding:"11px 13px",fontSize:16,minHeight:44,opacity:syncing?.6:1})}>
+          {syncing?<Spinner size={14}/>:"↻"}
         </button>
         <button onClick={openAdd} style={S.btn("#1A1714","#fff",{borderRadius:12,padding:"11px 18px",minHeight:44,whiteSpace:"nowrap"})}>+ Add</button>
       </div>

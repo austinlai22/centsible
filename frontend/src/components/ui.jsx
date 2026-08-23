@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { S } from "../styles.js";
 import { pct, fmtDec } from "../lib/format.js";
 
@@ -43,6 +44,17 @@ export function SpendBar({spent,budget,color}){
  * Both variants are the same DOM; only CSS differs (see .sheet-backdrop /
  * .sheet-panel in styles.js). A bottom sheet anchored to the bottom edge of a
  * 27" monitor is a phone idiom applied where it doesn't belong.
+ *
+ * Rendered via a portal into document.body rather than in place. Every page
+ * wraps its content in a div with className="slide-up", whose animation ends
+ * at `transform: translateY(0)` with fill-mode "both" — so the ancestor holds
+ * a transform permanently, not just during the animation. A transform on any
+ * ancestor creates a new containing block for position:fixed descendants,
+ * so without the portal this sheet's "fixed, full-viewport" backdrop was
+ * actually fixed to that PAGE's content box instead of the browser viewport —
+ * on a tall page the box's top could sit above y=0, and the sheet rendered
+ * partly or entirely above the visible screen. A portal escapes the whole
+ * ancestor chain, so no page-level CSS can trap it again.
  */
 export function Sheet({onClose,title,subtitle,children,zIndex=200}){
   // Escape to close, and lock background scrolling while open — without the
@@ -55,7 +67,7 @@ export function Sheet({onClose,title,subtitle,children,zIndex=200}){
     return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); };
   },[onClose]);
 
-  return(
+  return createPortal(
     <div className="fade-in sheet-backdrop" style={{zIndex}} onClick={onClose}>
       <div className="slide-up sheet-panel" role="dialog" aria-modal="true" aria-label={title}
            onClick={e=>e.stopPropagation()}>
@@ -68,7 +80,8 @@ export function Sheet({onClose,title,subtitle,children,zIndex=200}){
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

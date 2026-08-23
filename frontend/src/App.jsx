@@ -40,11 +40,20 @@ export default function App(){
   const [tab,setTab]             = useState("summary");
   const [showRewards,setShowRewards] = useState(false);
 
-  const txn      = useTransactions();
-  const accounts = useAccounts();
-  const goals    = useGoals();
-  const budgets  = useBudgets();
-  const rewards  = useRewards();
+  // Gates every data hook's first fetch on a CONFIRMED session (authReady has
+  // resolved AND authUser is a real user object, not the false/null it starts
+  // as). Without this, each hook fired on the very first paint — before
+  // authApi.me() could possibly have resolved — so every request 401'd, and
+  // nothing was wired to retry once login actually succeeded. That left the
+  // app stuck on demo-fallback data and a permanent "Session expired" banner
+  // for the rest of the tab's life, even with a perfectly valid session.
+  const authed = authReady && !!authUser;
+
+  const txn      = useTransactions(authed);
+  const accounts = useAccounts(authed);
+  const goals    = useGoals(authed);
+  const budgets  = useBudgets(authed);
+  const rewards  = useRewards(authed);
 
   useEffect(()=>{
     authApi.me()
