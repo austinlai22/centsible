@@ -3,6 +3,7 @@ import { CATEGORY_META, categoryLabel } from "../constants.js";
 import { fmt, fmtDec, formatDate } from "../lib/format.js";
 import { catSpendMap, getLevelInfo, periodTotals, MONTH_NAMES } from "../lib/periods.js";
 import { Card, ErrorBanner, SyncBanner, SkeletonCard, SkeletonList } from "../components/ui.jsx";
+import { RunwayCard } from "../components/RunwayCard.jsx";
 
 export default function Summary({profile,transactions,goals,points,accounts,loading,error,reload}){
   // Skeleton only on the very first load, before any data (including the demo
@@ -12,6 +13,7 @@ export default function Summary({profile,transactions,goals,points,accounts,load
     return(
       <div className="slide-up" style={{...S.col,gap:18}}>
         <SkeletonCard lines={4} style={{background:"var(--hero)"}}/>
+        <SkeletonCard lines={3}/>
         <div className="grid-stats"><SkeletonCard lines={2}/><SkeletonCard lines={2}/></div>
         <SkeletonCard lines={4}/>
         <SkeletonList rows={4}/>
@@ -72,6 +74,8 @@ export default function Summary({profile,transactions,goals,points,accounts,load
           ))}
         </div>
       </div>
+
+      <RunwayCard transactions={transactions} accounts={accounts} refDate={now}/>
 
       <div className="grid-stats">
         <Card>

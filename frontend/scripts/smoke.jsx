@@ -11,6 +11,7 @@ import About from "../src/pages/About.jsx";
 import { RewardsContent } from "../src/pages/Rewards.jsx";
 import { DEMO_TRANSACTIONS, DEMO_GOALS, DEMO_BUDGETS } from "../src/constants.js";
 import { MfaSettings } from "../src/components/MfaSettings.jsx";
+import { RunwayCard } from "../src/components/RunwayCard.jsx";
 
 let pass = 0, fail = 0;
 const noop = () => {};
@@ -71,6 +72,10 @@ t("Summary error state", <Summary profile={{}} transactions={[]} goals={[]} poin
       accounts={[]} loading={false} error="Network down" reload={noop}/>, "Retry");
 t("Summary relink banner", <Summary profile={{}} transactions={[]} goals={[]} points={0}
       accounts={[{id:"1",name:"Chase",item_status:"relink_required"}]} loading={false} error={null} reload={noop}/>, "Action needed");
+
+console.log("\n=== runway ===");
+t("RunwayCard renders with real transactions", <RunwayCard transactions={DEMO_TRANSACTIONS} accounts={[]}/>);
+t("RunwayCard renders its honest empty state", <RunwayCard transactions={[]} accounts={[]}/>);
 
 console.log("\n=== security surfaces ===");
 // useEffect does not run under renderToStaticMarkup, so this exercises the
