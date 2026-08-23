@@ -64,6 +64,19 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS spending_style  TEXT;
 -- two accounts.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS phone           TEXT;
 
+-- ── users: study profile ─────────────────────────────────────────────────────
+-- term_system and student_type drive the DEFAULTS the app proposes, not the
+-- stored dates themselves. Student type matters because federal rules hold
+-- Direct Loan funds for first-time first-year borrowers until 30 days into the
+-- term, while Pell and returning-student loans have no such delay — so the
+-- same term start implies a materially different date on which money actually
+-- reaches the student.
+--
+-- These are also the fields a future school integration would populate
+-- automatically instead of asking.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS term_system     TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS student_type    TEXT;
+
 -- ── auth_identities ───────────────────────────────────────────────────────────
 -- Separates IDENTITY (how you prove who you are) from ACCOUNT (the users row),
 -- so one account can be reached by several sign-in methods: email+password

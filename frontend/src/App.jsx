@@ -1,8 +1,8 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { authApi, termsApi } from "./api.js";
+import { authApi, termsApi, disbursementsApi } from "./api.js";
 import { CSS, S } from "./styles.js";
 import { NAV } from "./constants.js";
-import { getLevelInfo } from "./lib/periods.js";
+import { getLevelInfo, semesterForDate } from "./lib/periods.js";
 import { Sheet, PageFallback } from "./components/ui.jsx";
 
 import { useTransactions } from "./hooks/useTransactions.js";
@@ -84,6 +84,8 @@ export default function App(){
         financialGoal: answers.goal,
         housingCost:   answers.housing,
         spendingStyle: answers.style,
+        termSystem:    answers.termSystem,
+        studentType:   answers.studentType,
       });
       setAuthUser(res.user);
 
@@ -92,13 +94,32 @@ export default function App(){
       // built-in calendar until they set this in Settings.
       if (answers.term?.start && answers.term?.end) {
         try {
-          const year = new Date(answers.term.start + "T12:00:00").getFullYear();
+          // Name it after the season it starts in — "Fall 2026" rather than
+          // "Term 2026". Editable in Settings for schools that name terms
+          // differently (Michaelmas, Q1, and so on).
+          const startDate = new Date(answers.term.start + "T12:00:00");
+          const season = semesterForDate(startDate).name;
           await termsApi.create({
-            name: `Term ${year}`,
+            name: `${season} ${startDate.getFullYear()}`,
             start_date: answers.term.start,
             end_date: answers.term.end,
           });
           await termsH.reload();
+        } catch { /* correctable later in Settings */ }
+      }
+
+      // "I don't receive aid" is recorded by creating nothing — the runway
+      // then counts down to the end of term, which is the correct behaviour
+      // for a self-funded or working student.
+      const d = answers.disbursement;
+      if (d && !d.none && Number(d.amount) > 0 && d.expected_on) {
+        try {
+          await disbursementsApi.create({
+            label: "Financial aid",
+            amount: Number(d.amount),
+            expected_on: d.expected_on,
+          });
+          await disbH.reload();
         } catch { /* correctable later in Settings */ }
       }
 

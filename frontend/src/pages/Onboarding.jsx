@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { S } from "../styles.js";
 import { ONBOARDING_STEPS } from "../constants.js";
+import {
+  TERM_SYSTEMS, STUDENT_TYPES, suggestTermEnd,
+  suggestDisbursementDate, explainDisbursementDate,
+} from "../lib/calendar.js";
 import { PrivacyModal } from "../components/PrivacyModal.jsx";
 
 export function Onboarding({onComplete}){
@@ -17,21 +21,46 @@ export function Onboarding({onComplete}){
   useEffect(()=>{
     if(isPrivacyStep) return;
     const stepDef = ONBOARDING_STEPS[step];
-    setVal(answers[stepDef.id] ?? (stepDef.type==="daterange" ? {start:"",end:""} : ""));
+    const prior = answers[stepDef.id];
+    if (prior !== undefined) { setVal(prior); }
+    else if (stepDef.type === "daterange") {
+      // Prefill the end date from the term system so the student adjusts a
+      // plausible range instead of filling two empty fields.
+      setVal({ start:"", end:"" });
+    } else if (stepDef.type === "disbursement") {
+      setVal({
+        amount:"", none:false,
+        expected_on: suggestDisbursementDate(answers.term?.start, answers.studentType),
+      });
+    } else {
+      setVal("");
+    }
     const t=setTimeout(()=>inputRef.current?.focus(),60);
     return ()=>clearTimeout(t); // otherwise focus fires after unmount
   },[step]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const CHOICE_SOURCES = { TERM_SYSTEMS, STUDENT_TYPES };
+  // Choice steps either carry literal strings or name a catalogue to read.
+  const choices = cur?.choicesKey
+    ? CHOICE_SOURCES[cur.choicesKey].map(c => ({ value:c.id, label:c.label, hint:c.hint }))
+    : (cur?.choices || []).map(c => ({ value:c, label:c }));
+
   const isRange = cur?.type==="daterange";
+  const isDisb  = cur?.type==="disbursement";
+  // "No aid" is a real answer, not an evasion: plenty of students are
+  // self-funded or working, and forcing a fabricated disbursement would make
+  // the runway count down to a payment that never arrives.
+  const disbOk  = isDisb && (val?.none || (val?.amount && Number(val.amount) > 0 && val?.expected_on));
   // A date range is two values, so this step's answer is an object.
   const rangeOk = isRange && val?.start && val?.end && val.end > val.start;
-  const canAdvance = cur?.optional || (isRange ? rangeOk : String(val ?? "").trim().length > 0);
+  const canAdvance = cur?.optional
+    || (isRange ? rangeOk : isDisb ? disbOk : String(val ?? "").trim().length > 0);
 
   const next=()=>{
     if(!canAdvance) return;
-    const v = isRange ? val : String(val ?? "").trim();
+    const v = (isRange || isDisb) ? val : String(val ?? "").trim();
     // Optional steps may be skipped outright; don't store an empty answer.
-    const empty = isRange ? !rangeOk : !v;
+    const empty = isRange ? !rangeOk : isDisb ? !disbOk : !v;
     setAnswers(a => empty ? a : ({...a,[cur.id]:v}));
     setStep(s=>s+1);
   };
@@ -79,7 +108,15 @@ export function Onboarding({onComplete}){
                   <div>
                     <label htmlFor="ob-start" style={{...S.label,color:"var(--hero-muted)"}}>Term starts</label>
                     <input id="ob-start" ref={inputRef} type="date" value={val?.start||""}
-                      onChange={e=>setVal(v=>({...(v||{}),start:e.target.value}))} style={IS}/>
+                      onChange={e=>setVal(v=>{
+                        const start=e.target.value;
+                        // Propose an end date from the term system so the
+                        // student corrects a plausible guess rather than
+                        // filling a blank field.
+                        const end=(!v?.end||v.end===suggestTermEnd(v?.start,answers.termSystem))
+                          ? suggestTermEnd(start,answers.termSystem) : v.end;
+                        return {...(v||{}),start,end};
+                      })} style={IS}/>
                   </div>
                   <div>
                     <label htmlFor="ob-end" style={{...S.label,color:"var(--hero-muted)"}}>Term ends</label>
@@ -92,12 +129,58 @@ export function Onboarding({onComplete}){
                 </div>
               )}
 
+              {cur.type==="disbursement"&&(
+                <div style={{...S.col,gap:12}}>
+                  <button type="button"
+                    onClick={()=>setVal(v=>({...(v||{}),none:!v?.none}))}
+                    style={{background:val?.none?"var(--hero-accent)":"rgba(255,255,255,.07)",
+                      border:val?.none?"1px solid var(--hero-accent)":"1px solid rgba(255,255,255,.12)",
+                      borderRadius:12,padding:"12px 16px",color:val?.none?"var(--hero)":"var(--hero-ink)",
+                      fontSize:14,textAlign:"left",cursor:"pointer",minHeight:44}}>
+                    I don't receive financial aid
+                    <span style={{display:"block",fontSize:12,marginTop:2,
+                      color:val?.none?"var(--hero)":"var(--hero-muted)",opacity:val?.none?.75:1}}>
+                      Your runway will count down to the end of term instead
+                    </span>
+                  </button>
+
+                  {!val?.none && (
+                    <>
+                      <div>
+                        <label htmlFor="ob-amt" style={{...S.label,color:"var(--hero-muted)"}}>How much do you receive?</label>
+                        <input id="ob-amt" type="number" inputMode="decimal" placeholder="8400"
+                          value={val?.amount||""}
+                          onChange={e=>setVal(v=>({...(v||{}),amount:e.target.value}))} style={IS}/>
+                      </div>
+                      <div>
+                        <label htmlFor="ob-when" style={{...S.label,color:"var(--hero-muted)"}}>When does it reach you?</label>
+                        <input id="ob-when" type="date" value={val?.expected_on||""}
+                          onChange={e=>setVal(v=>({...(v||{}),expected_on:e.target.value}))} style={IS}/>
+                        <p style={{fontSize:12,color:"var(--hero-muted)",marginTop:8,lineHeight:1.6}}>
+                          {explainDisbursementDate(answers.studentType)}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
               {cur.type==="choice"&&(
                 <div style={{...S.col,gap:9}}>
-                  {cur.choices.map(c=>(
-                    <button key={c} type="button" onClick={()=>setVal(c)}
-                      style={{background:val===c?"var(--hero-accent)":"rgba(255,255,255,.07)",border:val===c?"1px solid var(--hero-accent)":"1px solid rgba(255,255,255,.12)",borderRadius:12,padding:"12px 16px",color:val===c?"var(--hero)":"var(--hero-ink)",fontSize:14,textAlign:"left",cursor:"pointer",fontWeight:val===c?600:400,transition:"all .18s",minHeight:44}}>
-                      {c}
+                  {choices.map(c=>(
+                    <button key={c.value} type="button" onClick={()=>setVal(c.value)}
+                      style={{background:val===c.value?"var(--hero-accent)":"rgba(255,255,255,.07)",
+                        border:val===c.value?"1px solid var(--hero-accent)":"1px solid rgba(255,255,255,.12)",
+                        borderRadius:12,padding:"12px 16px",color:val===c.value?"var(--hero)":"var(--hero-ink)",
+                        fontSize:14,textAlign:"left",cursor:"pointer",fontWeight:val===c.value?600:400,
+                        transition:"all .18s",minHeight:44}}>
+                      {c.label}
+                      {c.hint && (
+                        <span style={{display:"block",fontSize:12,fontWeight:400,marginTop:2,
+                          color:val===c.value?"var(--hero)":"var(--hero-muted)",opacity:val===c.value?.75:1}}>
+                          {c.hint}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>

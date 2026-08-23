@@ -331,6 +331,8 @@ router.delete("/me", requireAuth, async (req, res, next) => {
 
 const OnboardingSchema = z.object({
   name:           z.string().min(1).max(80).optional(),
+  termSystem:     z.enum(["semester","quarter","trimester","other"]).optional(),
+  studentType:    z.enum(["first_year","undergrad","grad","phd"]).optional(),
   income:         z.coerce.number().min(0).max(100_000_000).optional(),
   financialGoal:  z.string().max(120).optional(),
   housingCost:    z.coerce.number().min(0).max(100_000_000).optional(),
@@ -343,7 +345,8 @@ router.post("/onboarding", requireAuth, async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.errors[0].message });
     }
-    const { name, income, financialGoal, housingCost, spendingStyle } = parsed.data;
+    const { name, income, financialGoal, housingCost, spendingStyle,
+            termSystem, studentType } = parsed.data;
 
     const { rows } = await query(
       `UPDATE users SET
@@ -352,6 +355,8 @@ router.post("/onboarding", requireAuth, async (req, res, next) => {
          financial_goal = $3,
          housing_cost   = $4,
          spending_style = $5,
+         term_system    = COALESCE($7, term_system),
+         student_type   = COALESCE($8, student_type),
          onboarded_at   = NOW(),
          updated_at     = NOW()
        WHERE id = $6
@@ -363,6 +368,8 @@ router.post("/onboarding", requireAuth, async (req, res, next) => {
         housingCost ?? null,
         spendingStyle || null,
         req.userId,
+        termSystem || null,
+        studentType || null,
       ]
     );
 

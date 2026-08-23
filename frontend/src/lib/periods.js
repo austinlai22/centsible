@@ -18,6 +18,17 @@ import { pct } from "./format.js";
  */
 export const isTransfer = (category) => CATEGORY_META[category]?.transfer === true;
 
+/**
+ * Is this a once-a-term item rather than a recurring monthly one?
+ *
+ * Tuition, a housing deposit, an aid disbursement — these land in one month and
+ * would swamp any monthly rate computed from them. A $9,000 tuition bill makes
+ * one month look catastrophic; an $8,400 refund makes another look like a 98%
+ * savings rate. Neither describes how the student is actually managing money
+ * week to week, which is what a monthly rate is for.
+ */
+export const isTermItem = (category) => CATEGORY_META[category]?.period === "semester";
+
 /** Current level, the next one up, and progress toward it. */
 export function getLevelInfo(pts){
   const points = Number(pts) || 0;
@@ -161,8 +172,9 @@ export function periodTotals(transactions, refDate=new Date()){
   for(const t of transactions||[]){
     const date=String(t.date||"").slice(0,10);
     if(date<start || date>=end) continue;
-    // Transfers between the user's own accounts are neither.
-    if(isTransfer(t.category)) continue;
+    // Transfers between the user's own accounts are neither income nor
+    // spending; term items belong to the runway, not to a monthly rate.
+    if(isTransfer(t.category) || isTermItem(t.category)) continue;
     if(t.type==="income") income+=Number(t.amount)||0;
     else                  expenses+=Number(t.amount)||0;
   }

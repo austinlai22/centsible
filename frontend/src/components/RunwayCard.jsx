@@ -44,7 +44,7 @@ export function RunwayCard({ transactions, accounts, refDate = new Date(), terms
         <div style={{...S.between, gap:12, flexWrap:"wrap"}}>
           <div style={{minWidth:0}}>
             <p style={{fontSize:11,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".08em",fontWeight:600}}>
-              Runway · {r.term.name} term
+              Runway · {r.term.name}
             </p>
             <p style={{...S.display,fontSize:24,fontWeight:700,marginTop:6}}>
               {r.daysRemaining} days to {horizonLabel}
@@ -70,7 +70,7 @@ export function RunwayCard({ transactions, accounts, refDate = new Date(), terms
       <div style={{...S.between, gap:12, flexWrap:"wrap", marginBottom:14}}>
         <div style={{minWidth:0}}>
           <p style={{fontSize:11,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".08em",fontWeight:600}}>
-            Runway · {r.term.name} term
+            Runway · {r.term.name}
           </p>
           {/* Once the money outlasts the term, the raw runway figure stops
               being informative — "361 days of money" against a 114-day term is

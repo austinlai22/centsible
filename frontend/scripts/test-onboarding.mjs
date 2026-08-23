@@ -1,0 +1,118 @@
+/**
+ * Drives the real onboarding flow in a browser.
+ *
+ * It is now the required path for every new account, so a break here means
+ * nobody can sign up. Asserts both that it completes AND that what the student
+ * entered actually persisted — the runway is computed from these answers, so a
+ * silently dropped term date produces a confidently wrong headline.
+ */
+import { chromium } from "playwright";
+
+const APP = "http://localhost:5173";
+const API = "http://localhost:3001";
+let pass = 0, fail = 0;
+const ck = (label, ok, detail = "") => {
+  if (ok) { console.log(`  PASS  ${label}`); pass++; }
+  else { console.log(`  FAIL  ${label}${detail ? `\n          ${detail}` : ""}`); fail++; }
+};
+
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+const email = `onb${Date.now()}@test.local`;
+
+await page.goto(APP, { waitUntil: "networkidle" });
+await page.getByRole("button", { name: /sign up/i }).click();
+await page.waitForTimeout(200);
+await page.getByPlaceholder("you@example.com").fill(email);
+await page.getByPlaceholder("At least 8 characters").fill("testpassword123");
+await page.getByRole("button", { name: /create account/i }).click();
+await page.waitForTimeout(1500);
+
+ck("lands on onboarding after sign-up",
+   await page.getByText(/what should we call you/i).isVisible().catch(() => false));
+
+const cont = () => page.getByRole("button", { name: /continue|skip for now/i });
+
+// 1. name
+await page.locator("input").first().fill("Austin");
+await cont().click(); await page.waitForTimeout(400);
+
+// 2. student type — first-year, which triggers the 30-day federal hold
+ck("asks for student type", await page.getByText(/where are you in your studies/i).isVisible().catch(() => false));
+await page.getByRole("button", { name: /first-year undergraduate/i }).click();
+await page.waitForTimeout(150);
+await cont().click(); await page.waitForTimeout(400);
+
+// 3. term system
+ck("asks how the school divides the year",
+   await page.getByText(/how does your school divide/i).isVisible().catch(() => false));
+await page.getByRole("button", { name: /^semesters/i }).click();
+await page.waitForTimeout(150);
+await cont().click(); await page.waitForTimeout(400);
+
+// 4. term dates — the end should be proposed once a start is entered
+ck("asks for term dates", await page.getByText(/when does your current term run/i).isVisible().catch(() => false));
+await page.locator("#ob-start").fill("2026-08-24");
+await page.waitForTimeout(300);
+const proposedEnd = await page.locator("#ob-end").inputValue();
+ck("proposes an end date from the chosen term system", !!proposedEnd, `end was "${proposedEnd}"`);
+await cont().click(); await page.waitForTimeout(400);
+
+// 5. disbursement — the date should already reflect the first-year 30-day hold
+ck("asks when aid arrives", await page.getByText(/when does your aid arrive/i).isVisible().catch(() => false));
+const proposedDate = await page.locator("#ob-when").inputValue();
+const gap = proposedDate
+  ? Math.round((new Date(proposedDate) - new Date("2026-08-24")) / 86400000)
+  : null;
+ck("prefills a first-year date ~37 days out (30-day loan hold + refund lag)",
+   gap !== null && gap >= 30 && gap <= 45, `proposed ${proposedDate} (${gap} days after term start)`);
+ck("explains WHY the date is later than expected",
+   await page.getByText(/30 days into the term/i).isVisible().catch(() => false));
+await page.locator("#ob-amt").fill("8400");
+await cont().click(); await page.waitForTimeout(400);
+
+// 6. recurring income (optional) — skip it
+ck("separates recurring income from lump-sum aid",
+   await page.getByText(/any regular income/i).isVisible().catch(() => false));
+await cont().click(); await page.waitForTimeout(400);
+
+// 7. housing
+await page.locator("input").first().fill("950");
+await cont().click(); await page.waitForTimeout(400);
+
+// 8. spending style
+await page.getByRole("button", { name: /balanced/i }).click();
+await page.waitForTimeout(150);
+await cont().click(); await page.waitForTimeout(500);
+
+// privacy gate
+const rp = page.getByRole("button", { name: /read our privacy policy/i });
+if (await rp.isVisible({ timeout: 3000 }).catch(() => false)) {
+  await rp.click(); await page.waitForTimeout(400);
+  await page.mouse.wheel(0, 9000); await page.waitForTimeout(300);
+  await page.getByRole("button", { name: /accept/i }).click();
+  await page.waitForTimeout(1800);
+}
+ck("reaches the app", await page.getByText(/runway/i).isVisible().catch(() => false));
+
+// What actually persisted — the runway is computed from these.
+const state = await page.evaluate(async (api) => {
+  const get = async (p) => (await fetch(api + p, { credentials: "include" })).json();
+  return {
+    me:    await get("/auth/me"),
+    terms: await get("/api/terms"),
+    disb:  await get("/api/disbursements"),
+  };
+}, API);
+
+ck("student type persisted", state.me.user?.student_type === "first_year", JSON.stringify(state.me.user?.student_type));
+ck("term system persisted",  state.me.user?.term_system === "semester",   JSON.stringify(state.me.user?.term_system));
+ck("term saved",             state.terms.terms?.length === 1,             JSON.stringify(state.terms.terms));
+ck("term start is what was entered", state.terms.terms?.[0]?.start_date === "2026-08-24", JSON.stringify(state.terms.terms?.[0]));
+ck("disbursement saved with the entered amount",
+   state.disb.disbursements?.[0]?.amount === 8400, JSON.stringify(state.disb.disbursements));
+
+await page.screenshot({ path: "/tmp/onboarded-summary.png" });
+await browser.close();
+console.log(`\n  PASSED: ${pass}   FAILED: ${fail}`);
+process.exit(fail ? 1 : 0);

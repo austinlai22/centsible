@@ -69,6 +69,10 @@ export const CATEGORY_META = {
   Savings:        {icon:"💰",color:"#1baf7a",colorLight:"#E8F7F2",period:"monthly",transfer:true},
   Other:          {icon:"📦",color:"#96591f",colorLight:"#F4EEE9",period:"monthly"},
   // ── Student categories — termly/one-time expenses, shown in Semester view ──
+  // Aid money arriving. period:"semester" is load-bearing: it keeps a lump-sum
+  // refund out of the monthly savings rate, the same way it keeps a tuition
+  // bill out. The runway is what reasons about this money.
+  Disbursement:   {icon:"🏛️",color:"#0e9bb5",colorLight:"#E7F5F8",period:"semester",label:"Aid / Disbursement"},
   Tuition:        {icon:"🎓",color:"#a61e6d",colorLight:"#F6E8F0",period:"semester"},
   HousingDeposit: {icon:"🔑",color:"#1864ab",colorLight:"#E8F0F7",period:"semester",label:"Housing Deposit"},
   HealthInsurance:{icon:"🩺",color:"#0e9bb5",colorLight:"#E7F5F8",period:"semester",label:"Health Insurance"},
@@ -117,20 +121,33 @@ export const DEMO_BUDGETS = {
 };
 
 export const ONBOARDING_STEPS = [
-  {id:"name",   q:"What should we call you?",              type:"text",  placeholder:"Your first name"},
-  // Term dates come first among the financial questions because everything
-  // downstream is windowed by them — the runway, the semester budgets, and
-  // which term a one-off cost belongs to. Skippable: the built-in US semester
-  // calendar is a reasonable default and can be corrected later in settings.
-  {id:"term",   q:"When does your current term run?",      type:"daterange",
-   hint:"Your runway counts down to the end of term. Skip if you're not sure — you can set this later in Settings.",
+  {id:"name", q:"What should we call you?", type:"text", placeholder:"Your first name"},
+
+  // Student type comes before dates because it changes the disbursement
+  // estimate materially: first-time first-year borrowers wait 30 days into the
+  // term for Direct Loan funds, everyone else does not.
+  {id:"studentType", q:"Where are you in your studies?", type:"choice",
+   choicesKey:"STUDENT_TYPES",
+   hint:"This changes when your aid actually reaches you — federal rules treat first-year borrowers differently."},
+
+  {id:"termSystem", q:"How does your school divide the year?", type:"choice",
+   choicesKey:"TERM_SYSTEMS",
+   hint:"Semester schools disburse aid twice a year; quarter schools three times."},
+
+  {id:"term", q:"When does your current term run?", type:"daterange",
+   hint:"Everything in flo·w is measured against your term — how long your money has to last, and which costs are one-off."},
+
+  {id:"disbursement", q:"When does your aid arrive, and how much?", type:"disbursement",
+   hint:"We'll count your runway down to this date instead of the end of term, because that's when money actually has to reach."},
+
+  {id:"income", q:"Any regular income on top of that?", type:"money", placeholder:"e.g. 600",
+   hint:"A job, an allowance — anything that arrives every month. This drives your savings rate; lump-sum aid is handled by the runway instead.",
    optional:true},
-  {id:"income", q:"What's your monthly take-home income?", type:"money", placeholder:"e.g. 4500",
-   hint:"If your money arrives as a lump sum instead, leave this blank and add it as an expected payment later.",
-   optional:true},
-  {id:"goal",   q:"What's your primary financial goal?",   type:"choice",choices:["Save for a big purchase","Pay off debt","Build an emergency fund","Invest more","Just track spending"]},
-  {id:"housing",q:"What's your monthly housing cost?",     type:"money", placeholder:"e.g. 1500"},
-  {id:"style",  q:"How would you describe your spending?", type:"choice",choices:["Frugal & intentional","Balanced","I like to treat myself","Spontaneous spender"]},
+
+  {id:"housing", q:"What's your monthly housing cost?", type:"money", placeholder:"e.g. 950"},
+
+  {id:"style", q:"How would you describe your spending?", type:"choice",
+   choices:["Frugal & intentional","Balanced","I like to treat myself","Spontaneous spender"]},
 ];
 
 export const PRIVACY_SECTIONS = [
