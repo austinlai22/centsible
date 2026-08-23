@@ -276,6 +276,28 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_plaid_id_unique
 
 CREATE INDEX IF NOT EXISTS idx_transactions_source ON transactions(user_id, source);
 
+-- ── transactions: link back to the bank they came from ───────────────────────
+-- Without this, unlinking a bank left every one of its transactions behind.
+-- accounts cascaded away (they have a real FK), but transactions only ever
+-- referenced users, so DELETE /plaid/items/:id removed the accounts and left
+-- the spending history in place — still listed in Activity, still counted in
+-- Budget and Summary, attributed to an institution the user had disconnected.
+-- Verified before the fix: accounts 1 -> 0, transactions 7 -> 7.
+--
+-- NULL for manual rows, which belong to no bank.
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS plaid_item_id UUID
+  REFERENCES plaid_items(id) ON DELETE CASCADE;
+
+-- Backfill existing bank rows by walking plaid_account_id -> accounts.
+UPDATE transactions t
+   SET plaid_item_id = a.plaid_item_id
+  FROM accounts a
+ WHERE a.plaid_account_id = t.plaid_account_id
+   AND t.plaid_item_id IS NULL
+   AND t.source = 'plaid';
+
+CREATE INDEX IF NOT EXISTS idx_transactions_plaid_item ON transactions(plaid_item_id);
+
 -- ── user_budgets ──────────────────────────────────────────────────────────────
 -- Monthly budget amounts per category, per user.
 -- month is stored as the first day of that month: 2025-05-01.
@@ -332,6 +354,24 @@ CREATE TABLE IF NOT EXISTS rewards (
   points      INTEGER     NOT NULL DEFAULT 0,
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- ── reward_claims ─────────────────────────────────────────────────────────────
+-- One row per (user, action, period). The UNIQUE constraint is the entire
+-- mechanism: without it, POST /api/rewards/earn simply added points every time
+-- it was called, so twenty clicks of one button was worth 400 points and the
+-- levels meant nothing. period_key is 'YYYY-MM' — each action is claimable once
+-- per calendar month.
+CREATE TABLE IF NOT EXISTS reward_claims (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  action      TEXT        NOT NULL,
+  period_key  TEXT        NOT NULL,
+  points      INTEGER     NOT NULL,
+  claimed_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, action, period_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_reward_claims_user ON reward_claims(user_id, period_key);
 
 -- ── reward_redemptions ────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS reward_redemptions (

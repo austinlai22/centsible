@@ -55,10 +55,18 @@ echo "$R" | grep -q '"amount":5.25' && check "update manual txn" 1 || check "upd
 
 echo
 echo "=== REWARDS ==="
-R=$(curl -s -b $J -X POST $API/api/rewards/earn -H 'Content-Type: application/json' -d '{"action":"hit_savings_rate"}')
-echo "$R" | grep -q '"earned":50' && check "earn uses SERVER point value" 1 || check "earn uses SERVER point value" 0 "$R"
+# complete_monthly_review is the one action with no data precondition (a
+# "review" leaves no trace the server can check), so it exercises the award
+# path. Everything else is verified against real data — see test-logic.sh.
+R=$(curl -s -b $J -X POST $API/api/rewards/earn -H 'Content-Type: application/json' -d '{"action":"complete_monthly_review"}')
+echo "$R" | grep -q '"earned":20' && check "earn uses SERVER point value" 1 || check "earn uses SERVER point value" 0 "$R"
 R=$(curl -s -b $J -X POST $API/api/rewards/earn -H 'Content-Type: application/json' -d '{"action":"made_up_action"}')
 echo "$R" | grep -q '"error"' && check "unknown earn action rejected" 1 || check "unknown earn action rejected" 0 "$R"
+# Fund the account enough to redeem: budgets + a funded goal are both verifiable.
+curl -s -b $J -X PUT "$API/api/budgets" -H 'Content-Type: application/json' -d '{"Food":600}' >/dev/null
+curl -s -b $J -X POST $API/api/rewards/earn -H 'Content-Type: application/json' -d '{"action":"set_spending_limit"}' >/dev/null
+GG=$(curl -s -b $J -X POST $API/api/goals -H 'Content-Type: application/json' -d '{"name":"Fund","target":100,"saved":10}')
+curl -s -b $J -X POST $API/api/rewards/earn -H 'Content-Type: application/json' -d '{"action":"add_goal_funds"}' >/dev/null
 R=$(curl -s -b $J -X POST $API/api/rewards/redeem -H 'Content-Type: application/json' -d '{"charity_id":5}')
 echo "$R" | grep -q '"charity_name":"Food Bank Network"' && check "redeem prices server-side" 1 || check "redeem prices server-side" 0 "$R"
 R=$(curl -s -b $J -X POST $API/api/rewards/redeem -H 'Content-Type: application/json' -d '{"charity_id":3}')

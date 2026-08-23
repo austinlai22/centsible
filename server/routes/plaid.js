@@ -285,7 +285,10 @@ router.delete("/items/:itemId", validateUUID("itemId"), async (req, res, next) =
       console.warn("[plaid] itemRemove error (continuing):", plaidErr.message);
     }
 
-    // Cascade delete removes accounts and transactions automatically
+    // Cascade removes accounts AND (since the plaid_item_id FK was added in
+    // db/migrate.js) this bank's transactions. Before that column existed this
+    // comment was simply false: transactions referenced only users, so they
+    // survived the unlink and kept counting toward Budget and Summary.
     await query(
       "DELETE FROM plaid_items WHERE id = $1 AND user_id = $2",
       [req.params.itemId, req.userId]

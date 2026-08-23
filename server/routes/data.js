@@ -129,15 +129,34 @@ const VALID_CATEGORIES = Object.keys(CATEGORY_PERIOD);
 
 // ─── Input schemas ────────────────────────────────────────────────────────────
 
+// Deadlines are capped rather than merely well-formed: a goal dated 1999 can
+// never be met, and the UI computes "days left" and a required monthly
+// contribution from it, both of which are nonsense for a past date.
+const MAX_YEARS_AHEAD = 50;
+const notInThePast = (d) => !d || d >= new Date().toISOString().slice(0, 10);
+const withinHorizon = (d) => {
+  if (!d) return true;
+  const limit = new Date(); limit.setFullYear(limit.getFullYear() + MAX_YEARS_AHEAD);
+  return d <= limit.toISOString().slice(0, 10);
+};
+
 const GoalCreateSchema = z.object({
   name:     z.string().min(1).max(120),
   emoji:    z.string().max(8).optional().default("🎯"),
-  target:   z.number().positive(),
+  target:   z.number().positive().max(1_000_000_000),
   saved:    z.number().min(0).optional().default(0),
-  deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-});
+  deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+              .refine(notInThePast,  { message: "Target date can't be in the past" })
+              .refine(withinHorizon, { message: "Target date is unrealistically far away" })
+              .nullable().optional(),
+})
+  // saved > target is not a real state: progress is capped at 100% everywhere
+  // it's displayed, so storing 99999 against a 1000 target silently diverges
+  // from what every screen shows.
+  .refine(d => d.saved === undefined || d.saved <= d.target,
+          { message: "Amount saved can't exceed the goal target", path: ["saved"] });
 
-const GoalUpdateSchema = GoalCreateSchema.partial();
+const GoalUpdateSchema = GoalCreateSchema.innerType().partial();
 
 // Keys are constrained to VALID_CATEGORIES rather than any string: with a
 // free-form key a client could write budgets under categories the app has no
@@ -212,11 +231,21 @@ router.put("/goals/:id", validateUUID("id"), async (req, res, next) => {
 
     // Confirm the goal belongs to this user before updating
     const existing = await query(
-      "SELECT id FROM user_goals WHERE id = $1 AND user_id = $2",
+      "SELECT id, target, saved FROM user_goals WHERE id = $1 AND user_id = $2",
       [req.params.id, req.userId]
     );
     if (!existing.rows[0]) {
       return res.status(404).json({ error: "Goal not found" });
+    }
+
+    // saved <= target has to be re-checked here, not just in the schema: an
+    // update may set only one of the two, so the invariant spans the request
+    // body AND the stored row. The create-time refine can't see the stored
+    // value, which is how saved=99999 against a target of 1000 got through.
+    const nextTarget = parsed.data.target ?? Number(existing.rows[0].target);
+    const nextSaved  = parsed.data.saved  ?? Number(existing.rows[0].saved);
+    if (nextSaved > nextTarget) {
+      return res.status(400).json({ error: "Amount saved can't exceed the goal target" });
     }
 
     // Build SET clause from only the fields provided
@@ -380,12 +409,21 @@ router.put("/budgets", async (req, res, next) => {
 // merged into one list) is handled by GET /plaid/transactions in
 // routes/plaid.js, which queries the same table without filtering by source.
 
+// A transaction dated 2099 sorts to the top of Activity forever and lands in
+// no navigable budget period. Tomorrow is allowed (timezone slack); years are
+// not.
+const withinReason = (d) => {
+  const max = new Date(); max.setDate(max.getDate() + 1);
+  return d <= max.toISOString().slice(0, 10) && d >= "2000-01-01";
+};
+
 const TxnCreateSchema = z.object({
   desc:     z.string().min(1).max(200),
-  amount:   z.number().positive(),
+  amount:   z.number().positive().max(1_000_000_000),
   category: z.enum(VALID_CATEGORIES),
   type:     z.enum(["income", "expense"]),
-  date:     z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date:     z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+              .refine(withinReason, { message: "Date must be between 2000 and tomorrow" }),
 });
 
 const TxnUpdateSchema = TxnCreateSchema.partial();

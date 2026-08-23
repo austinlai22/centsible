@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { plaidApi, transactionsApi } from "../api.js";
-import { DEMO_TRANSACTIONS } from "../constants.js";
 import { useApi } from "./useApi.js";
 
 /**
@@ -24,7 +23,7 @@ export function useTransactions(enabled = true) {
         amount: Math.abs(Number(t.amount)),
       }));
     },
-    DEMO_TRANSACTIONS,
+    [],
     [],
     enabled
   );

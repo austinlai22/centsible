@@ -23,19 +23,27 @@ export default function Summary({profile,transactions,goals,points,accounts,load
   // Scoped to the current calendar month. The previous version summed EVERY
   // transaction ever loaded (including demo rows from other months) while the
   // hero read "May 2025" — so the headline numbers never matched the label.
-  const { income, expenses, saved, savingsRate: sr } = periodTotals(transactions, now);
+  const { income, expenses, saved, savingsRate: sr, hasIncome } = periodTotals(transactions, now);
   const periodLabel = `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`;
 
   // Summary is a general overview, not a period-specific budget view, so it
   // combines this month's monthly-category spend with this semester's
   // semester-category spend — Food (this month) and Tuition (this semester)
   // can both appear in the same breakdown.
-  const spend   = {...catSpendMap(transactions,"monthly",now), ...catSpendMap(transactions,"semester",now)};
+  // ONE call, not a merge of two. catSpendMap already windows each category by
+  // its own period tag — monthly categories by this month, semester categories
+  // by this semester. Spreading a second "semester" map over it overwrote the
+  // monthly figures with semester-to-date totals, so the breakdown silently
+  // disagreed with the "Spent this month" tile beside it.
+  const spend   = catSpendMap(transactions,"monthly",now);
   const topCats = Object.entries(spend).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const recent  = [...(transactions||[])].sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,5);
   const {cur:lvl}= getLevelInfo(points);
 
-  const headline = sr>20 ? "You're crushing it this month."
+  const nothingYet = !hasIncome && expenses === 0;
+  const headline = nothingYet ? "Nothing recorded yet this month — add a transaction or link a bank to get started."
+    : !hasIncome ? "No income recorded yet this month, so there's no savings rate to show."
+    : sr>20 ? "You're crushing it this month."
     : sr>0   ? "Staying on track — keep it up."
     : sr===0 ? "You're breaking even this month."
     : "Spending is exceeding income.";
@@ -68,8 +76,12 @@ export default function Summary({profile,transactions,goals,points,accounts,load
       <div className="grid-stats">
         <Card>
           <p style={{fontSize:11,color:"var(--muted)",textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>Savings rate</p>
-          <p style={{...S.display,fontSize:32,fontWeight:300,color:sr>=20?"var(--success)":sr>=0?"var(--warning)":"var(--danger)"}}>{sr}%</p>
-          <p style={{fontSize:11,color:"var(--muted)",marginTop:2}}>Target: 20%</p>
+          <p style={{...S.display,fontSize:32,fontWeight:300,color:!hasIncome?"var(--subtle)":sr>=20?"var(--success)":sr>=0?"var(--warning)":"var(--danger)"}}>
+            {hasIncome ? `${sr}%` : "—"}
+          </p>
+          <p style={{fontSize:11,color:"var(--muted)",marginTop:2}}>
+            {hasIncome ? "Target: 20%" : "Needs income to calculate"}
+          </p>
         </Card>
         <Card>
           <p style={{fontSize:11,color:"var(--muted)",textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>Goals</p>

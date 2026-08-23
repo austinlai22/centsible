@@ -25,7 +25,7 @@ function decorate(row) {
 export function useRewards(enabled = true) {
   const { data: points, loading, error, reload } = useApi(
     async () => (await rewardsApi.get()).points,
-    340,  // demo fallback when the backend is unreachable
+    0,    // a new account genuinely has no points
     [],
     enabled
   );

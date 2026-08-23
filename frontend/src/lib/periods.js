@@ -11,6 +11,13 @@
 import { CATEGORY_META, LEVELS } from "../constants.js";
 import { pct } from "./format.js";
 
+/**
+ * Is this category a movement between the user's own accounts rather than real
+ * income or spending? Transfers must be excluded from every total — see the
+ * transfer flag in constants.js for why.
+ */
+export const isTransfer = (category) => CATEGORY_META[category]?.transfer === true;
+
 /** Current level, the next one up, and progress toward it. */
 export function getLevelInfo(pts){
   const points = Number(pts) || 0;
@@ -99,7 +106,7 @@ export function catSpendMap(transactions, activeView="monthly", refDate=new Date
 
   const m={};
   (transactions||[])
-    .filter(t=>t.type==="expense")
+    .filter(t=>t.type==="expense" && !isTransfer(t.category))
     .forEach(t=>{
       const catPeriod=CATEGORY_META[t.category]?.period||"monthly";
       const useSemesterWindow = catPeriod==="semester" || activeView==="semester";
@@ -128,11 +135,17 @@ export function periodTotals(transactions, refDate=new Date()){
   for(const t of transactions||[]){
     const date=String(t.date||"").slice(0,10);
     if(date<start || date>=end) continue;
+    // Transfers between the user's own accounts are neither.
+    if(isTransfer(t.category)) continue;
     if(t.type==="income") income+=Number(t.amount)||0;
     else                  expenses+=Number(t.amount)||0;
   }
   const saved=income-expenses;
-  return { income, expenses, saved, savingsRate: income>0 ? Math.round((saved/income)*100) : 0 };
+  // hasIncome distinguishes "no income recorded" from a genuine 0% rate, so
+  // the UI can say "—" instead of asserting 0% for someone who spent $500 on
+  // no recorded income.
+  return { income, expenses, saved, hasIncome: income>0,
+           savingsRate: income>0 ? Math.round((saved/income)*100) : 0 };
 }
 
 export const MONTH_NAMES=["January","February","March","April","May","June","July","August","September","October","November","December"];

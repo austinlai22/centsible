@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { budgetsApi } from "../api.js";
-import { DEMO_BUDGETS } from "../constants.js";
 import { monthKey, semesterForDate } from "../lib/periods.js";
 import { useApi } from "./useApi.js";
 
@@ -30,9 +29,10 @@ export function useBudgets(enabled = true) {
   const { data: serverBudgets, loading, error, reload } = useApi(
     async () => {
       const res = await budgetsApi.get({ month, semester });
-      return Object.keys(res.budgets || {}).length > 0 ? res.budgets : DEMO_BUDGETS;
+      // No demo fallback: an account with no budgets set must LOOK like one.
+      return res.budgets || {};
     },
-    DEMO_BUDGETS,
+    {},
     [month, semester], // refetch when navigation moves to a different period
     enabled
   );

@@ -59,7 +59,34 @@ export function RedeemList({points,confirming,setConfirming,handleRedeem}){
 export function RewardsContent({points,redeemed,earn,redeem,startOnRedeem=false}){
   const [showRedeem,setShowRedeem]=useState(false);
   const [confirming,setConfirming]=useState(null);
+  const [claiming,setClaiming]=useState(false);
+  const [claimMsg,setClaimMsg]=useState("");
   const {cur,next,prog}=getLevelInfo(points);
+
+  /**
+   * Asks the server to check every action against real data. The server is the
+   * only thing that decides whether a claim holds and whether it has already
+   * been claimed this month, so this deliberately reports back rather than
+   * assuming anything succeeded.
+   */
+  const claimAll=async()=>{
+    setClaiming(true); setClaimMsg("");
+    const earned=[], blocked=[];
+    for(const a of EARN_ACTIONS){
+      try{
+        const res=await earn(a.key);
+        if(res?.earned>0) earned.push(`+${res.earned} ${a.action}`);
+      }catch(e){
+        blocked.push(`${a.action}: ${e.message}`);
+      }
+    }
+    setClaiming(false);
+    setClaimMsg(
+      earned.length
+        ? `Awarded:\n${earned.join("\n")}`
+        : `Nothing to claim right now.\n${blocked.slice(0,3).join("\n")}`
+    );
+  };
 
   const handleRedeem=async ch=>{
     try{
@@ -132,10 +159,19 @@ export function RewardsContent({points,redeemed,earn,redeem,startOnRedeem=false}
             <span style={{fontSize:13,fontWeight:600,color:"var(--primary)",whiteSpace:"nowrap"}}>+{a.pts} pts</span>
           </div>
         ))}
-        <button onClick={async()=>{try{await earn("complete_monthly_review");}catch(e){alert(e.message);}}}
-          style={{marginTop:16,width:"100%",background:"var(--warning-bg)",border:"1px solid var(--warning-line)",borderRadius:10,padding:"12px",fontSize:13,fontWeight:600,cursor:"pointer",color:"var(--warning)",minHeight:44}}>
-          ✨ Simulate earning 20 pts (demo)
+        {/* The "simulate earning" button that used to sit here handed out
+            points on demand, with no cooldown — twenty clicks was 400 points,
+            so levels measured clicking rather than behaviour. Points are now
+            awarded by the server after it checks the claim against real data,
+            once per action per month. */}
+        <button onClick={claimAll} disabled={claiming}
+          className="btn btn-primary"
+          style={{marginTop:16,width:"100%",padding:"12px",fontSize:13,minHeight:44,opacity:claiming?.6:1}}>
+          {claiming ? "Checking…" : "Check what I've earned this month"}
         </button>
+        {claimMsg && (
+          <p style={{fontSize:12,color:"var(--muted)",marginTop:10,lineHeight:1.6,whiteSpace:"pre-line"}}>{claimMsg}</p>
+        )}
       </Card>
 
       <button onClick={()=>setShowRedeem(true)} style={S.darkBtn({display:"flex",alignItems:"center",justifyContent:"center",gap:10,borderRadius:14,padding:"16px",fontSize:15})}>

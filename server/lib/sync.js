@@ -69,8 +69,8 @@ export async function syncItem(item) {
         `INSERT INTO transactions
            (user_id, plaid_account_id, plaid_transaction_id,
             amount, currency_code, description, merchant_name,
-            category, plaid_category, date, pending)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+            category, plaid_category, date, pending, plaid_item_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
          ON CONFLICT (plaid_transaction_id)
            WHERE plaid_transaction_id IS NOT NULL
          DO UPDATE SET
@@ -94,6 +94,9 @@ export async function syncItem(item) {
           txn.category || [],   // legacy category array
           txn.date,
           txn.pending,
+          // Ties the row to the bank it came from, so unlinking that bank
+          // removes its transactions too.
+          item.id,
         ]
       );
     }
@@ -108,8 +111,8 @@ export async function syncItem(item) {
         `INSERT INTO transactions
            (user_id, plaid_account_id, plaid_transaction_id,
             amount, currency_code, description, merchant_name,
-            category, plaid_category, date, pending)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+            category, plaid_category, date, pending, plaid_item_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
          ON CONFLICT (plaid_transaction_id)
            WHERE plaid_transaction_id IS NOT NULL
          DO UPDATE SET
@@ -133,6 +136,9 @@ export async function syncItem(item) {
           txn.category || [],
           txn.date,
           txn.pending,
+          // Ties the row to the bank it came from, so unlinking that bank
+          // removes its transactions too.
+          item.id,
         ]
       );
     }

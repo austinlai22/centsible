@@ -59,7 +59,14 @@ export const CATEGORY_META = {
   Health:         {icon:"💊",color:"#008300",colorLight:"#E6F3E6",period:"monthly"},
   Shopping:       {icon:"🛍️",color:"#e87ba4",colorLight:"#FDF2F6",period:"monthly"},
   Entertainment:  {icon:"🎬",color:"#9c36b5",colorLight:"#F5EBF8",period:"monthly"},
-  Savings:        {icon:"💰",color:"#1baf7a",colorLight:"#E8F7F2",period:"monthly"},
+  // transfer:true — money moved between the user's OWN accounts. It is neither
+  // income nor spending, and counting it as either corrupts every headline
+  // figure. With a savings account linked, Plaid reports one transfer twice:
+  // positive (out of checking) and negative (into savings). Treated naively
+  // that inflates income AND expenses, and makes saving money reduce the
+  // reported savings rate — the app told you that you were doing worse for
+  // doing the right thing.
+  Savings:        {icon:"💰",color:"#1baf7a",colorLight:"#E8F7F2",period:"monthly",transfer:true},
   Other:          {icon:"📦",color:"#96591f",colorLight:"#F4EEE9",period:"monthly"},
   // ── Student categories — termly/one-time expenses, shown in Semester view ──
   Tuition:        {icon:"🎓",color:"#a61e6d",colorLight:"#F6E8F0",period:"semester"},
@@ -73,9 +80,17 @@ export const CATEGORY_META = {
  *  present (for multi-word names that aren't valid as object keys). */
 export const categoryLabel = (key) => CATEGORY_META[key]?.label || key;
 
-// Demo data shown when the backend isn't reachable.
-// Marked source:"plaid" so the UI treats them as read-only, same as real
-// bank-synced rows — keeps demo behavior consistent with production.
+/**
+ * TEST FIXTURES ONLY — not app fallbacks.
+ *
+ * These used to be served whenever a fetch failed OR returned nothing, so a
+ * brand-new account saw eleven budgets, two goals and 340 points that looked
+ * exactly like real data. Worse, editing any single budget made the client PUT
+ * the whole map it was holding, permanently saving all eleven invented targets
+ * (including a $9,000 tuition budget) against an account that had set none of
+ * them. The hooks now show true empty states; these remain only so the render
+ * tests have realistic input.
+ */
 export const DEMO_TRANSACTIONS = [
   {id:"d1",date:"2025-05-18",desc:"Whole Foods",    amount:87.42, category:"Food",         type:"expense",source:"plaid"},
   {id:"d2",date:"2025-05-17",desc:"Rent",           amount:1850,  category:"Housing",      type:"expense",source:"plaid"},
