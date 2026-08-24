@@ -1,0 +1,24 @@
+{
+  "//": [
+    "Dev-server watch config. Without it nodemon watches the whole directory",
+    "for js/mjs/cjs/json, which restarts the API every time a test script is",
+    "edited — noisy, and it drops any in-flight request for no reason.",
+    "",
+    ".env is watched deliberately. dotenv reads it once at startup, so pasting",
+    "a Plaid secret or changing a rate limit did nothing until the process was",
+    "restarted by hand, which is easy to forget and looks like the change not",
+    "working. Note that changing .env restarts the server but does NOT rerun",
+    "migrations."
+  ],
+  "watch": ["index.js", "routes", "lib", "db", "middleware", ".env"],
+  "ext": "js,mjs,json,env",
+  "ignore": [
+    "scripts/*",
+    "node_modules/*",
+    "db/seed.js"
+  ],
+  "delay": 300,
+  "env": {
+    "NODE_ENV": "development"
+  }
+}

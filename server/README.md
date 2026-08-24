@@ -66,12 +66,30 @@ only adds what's missing.
 ### 5. Start the server
 
 ```bash
-# Development (auto-restart on file changes)
+# Development — USE THIS LOCALLY
 npm run dev
 
-# Production (also see DEPLOYMENT.md for running via Docker)
+# Production only
 npm start
 ```
+
+`npm run dev` runs the server under nodemon, which restarts it whenever you
+change `index.js`, `routes/`, `lib/`, `db/`, `middleware/`, or `.env`
+(see `nodemon.json`).
+
+`npm start` runs plain `node index.js` with **no reload**. Using it locally is
+a reliable way to lose an afternoon: you add a route or a schema field, the
+server keeps serving the old code, and the change looks broken when it isn't.
+The `.env` watch matters for the same reason — dotenv reads that file once at
+startup, so pasting a Plaid secret or changing a rate limit previously did
+nothing until you restarted by hand.
+
+Two things nodemon does NOT do:
+
+- **Editing `.env` restarts the server but does not run migrations.** After a
+  schema change, run `npm run db:migrate` yourself.
+- **Editing files in `scripts/` is ignored on purpose**, so tweaking a test
+  doesn't bounce the API and drop in-flight requests.
 
 The server starts on port `3001` by default. Confirm it's healthy:
 ```bash
