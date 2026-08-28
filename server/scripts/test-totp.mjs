@@ -100,8 +100,8 @@ t("a different secret does not validate", () => {
 
 console.log("\n=== enrolment URI ===");
 t("otpauth URI carries issuer in both label and query", () => {
-  const uri = toURI({ secret: S, accountName: "a@b.c", issuer: "flow" });
-  for (const part of ["otpauth://totp/", "flow:a%40b.c", `secret=${S}`, "issuer=flow", "digits=6", "period=30"]) {
+  const uri = toURI({ secret: S, accountName: "a@b.c" });
+  for (const part of ["otpauth://totp/", "Centsible:a%40b.c", `secret=${S}`, "issuer=Centsible", "digits=6", "period=30"]) {
     if (!uri.includes(part)) throw new Error(`missing ${part} in ${uri}`);
   }
 });

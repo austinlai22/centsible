@@ -23,13 +23,13 @@ echo
 echo "── legal / policy ───────────────────────────────────────────────────────"
 # Only bare [Bracketed] text is a real placeholder; [text](url) is a markdown
 # link and must not be flagged.
-PLACEHOLDERS=$(grep -oE '\[[A-Z][^]]*\][^(]' flow-privacy-policy.md 2>/dev/null | sed 's/.$//' | sort -u | tr '\n' ' ')
+PLACEHOLDERS=$(grep -oE '\[[A-Z][^]]*\][^(]' centsible-privacy-policy.md 2>/dev/null | sed 's/.$//' | sort -u | tr '\n' ' ')
 if [ -n "$PLACEHOLDERS" ]; then
   bad "privacy policy still has unfilled placeholders" "$PLACEHOLDERS"
 else ok "privacy policy has no placeholders"; fi
 
-if grep -q "privacy@flowapp.com" flow-privacy-policy.md 2>/dev/null; then
-  note "policy lists privacy@flowapp.com — make sure that mailbox exists and is monitored"
+if grep -q "privacy@centsible.app" centsible-privacy-policy.md 2>/dev/null; then
+  note "policy lists privacy@centsible.app — make sure that mailbox exists and is monitored"
 fi
 
 echo

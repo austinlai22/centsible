@@ -6,6 +6,7 @@ import {
   suggestDisbursementDate, explainDisbursementDate,
 } from "../lib/calendar.js";
 import { PrivacyModal } from "../components/PrivacyModal.jsx";
+import { Brand } from "../components/Brand.jsx";
 
 export function Onboarding({onComplete}){
   const [step,setStep]       = useState(0);
@@ -74,7 +75,7 @@ export function Onboarding({onComplete}){
       <div style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--hero)",padding:24}}>
         <div style={{width:"100%",maxWidth:460}}>
           <div style={{textAlign:"center",marginBottom:44}}>
-            <span style={{...S.display,fontSize:30,color:"var(--hero-ink)",fontWeight:300,letterSpacing:"-0.5px"}}>flo<span style={{color:"var(--hero-accent)"}}>·</span>w</span>
+            <span style={{color:"var(--hero-ink)"}}><Brand size={30} on="dark"/></span>
           </div>
 
           <div style={{height:2,background:"rgba(255,255,255,.1)",borderRadius:2,marginBottom:44,overflow:"hidden"}}>
@@ -204,7 +205,7 @@ export function Onboarding({onComplete}){
               <p style={{color:"var(--hero-muted)",fontSize:12,marginBottom:10,textTransform:"uppercase",letterSpacing:"1.2px"}}>{totalSteps} of {totalSteps}</p>
               <h2 style={{...S.display,color:"var(--hero-ink)",fontSize:25,fontWeight:400,marginBottom:12,lineHeight:1.35}}>Before we begin</h2>
               <p style={{color:"var(--hero-muted)",fontSize:14,lineHeight:1.65,marginBottom:28}}>
-                flo·w is built on the principle that your financial data belongs to you. Please take a moment to read our Privacy Policy.
+                Centsible is built on the principle that your financial data belongs to you. Please take a moment to read our Privacy Policy.
               </p>
               <button type="button" onClick={()=>setShowPrivacy(true)}
                 style={{width:"100%",background:"rgba(255,255,255,.07)",border:"1px solid rgba(255,255,255,.15)",borderRadius:12,padding:"15px 18px",color:"var(--hero-ink)",fontSize:14,cursor:"pointer",textAlign:"left",...S.between}}>

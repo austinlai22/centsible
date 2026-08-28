@@ -1,4 +1,4 @@
-# flo·w Privacy Policy
+# Centsible Privacy Policy
 
 **Effective date:** May 20, 2025  
 **Plain-language summary at the top — full details below.**
@@ -17,9 +17,9 @@
 
 ## 1. Who we are
 
-flo·w is a personal finance app built to help you understand and improve your relationship with money. We are [Company Legal Name], incorporated in [State], United States ("flo·w," "we," "us," or "our").
+Centsible is a personal finance app built to help you understand and improve your relationship with money. We are [Company Legal Name], incorporated in [State], United States ("Centsible," "we," "us," or "our").
 
-Questions about this policy: **privacy@flowapp.com**  
+Questions about this policy: **privacy@centsible.app**  
 Mailing address: [Address]
 
 ---
@@ -80,7 +80,7 @@ To be explicit:
 
 ## 3. How we use your information
 
-Your data is used for exactly one purpose: **making flo·w work well for you.**
+Your data is used for exactly one purpose: **making Centsible work well for you.**
 
 Specifically:
 - Displaying your spending summaries, budget progress, and goal tracking
@@ -112,7 +112,7 @@ We share the minimum necessary with a small number of service providers who help
 **We do not share your data with:**
 - Advertisers or ad networks
 - Data brokers
-- Other flo·w users
+- Other Centsible users
 - Any third party for their own marketing purposes
 
 We may disclose information if required by law (e.g. a valid court order), but we will notify you unless legally prohibited from doing so, and we will push back on overbroad requests.
@@ -123,7 +123,7 @@ We may disclose information if required by law (e.g. a valid court order), but w
 
 You are in control of your data. Here is what you can do, and how:
 
-**Access:** Request a full export of everything we have about you. Go to **Settings → Privacy → Export my data**, or email privacy@flowapp.com. We'll send a structured file (JSON or CSV) within 7 days.
+**Access:** Request a full export of everything we have about you. Go to **Settings → Privacy → Export my data**, or email privacy@centsible.app. We'll send a structured file (JSON or CSV) within 7 days.
 
 **Correction:** If any of your data is inaccurate, you can edit it directly in the app, or contact us to do it for you.
 
@@ -158,7 +158,7 @@ We take security seriously because your financial data deserves it. Our practice
 
 - **Encryption in transit:** all data transmitted between your device and our servers uses TLS 1.3
 - **Encryption at rest:** all stored data is encrypted using AES-256
-- **Access controls:** only a small number of flo·w employees can access production data, and only when required to resolve a support issue. All access is logged and audited.
+- **Access controls:** only a small number of Centsible employees can access production data, and only when required to resolve a support issue. All access is logged and audited.
 - **No plaintext credentials:** we never store bank usernames or passwords
 - **Regular security reviews:** we conduct periodic security audits and vulnerability assessments
 
@@ -168,7 +168,7 @@ No system is perfectly secure. If we ever experience a breach affecting your dat
 
 ## 8. Children's privacy
 
-flo·w is not directed at children under 13. We do not knowingly collect personal information from anyone under 13. If you believe a child has provided us with their information, please contact us at privacy@flowapp.com and we will delete it promptly.
+Centsible is not directed at children under 13. We do not knowingly collect personal information from anyone under 13. If you believe a child has provided us with their information, please contact us at privacy@centsible.app and we will delete it promptly.
 
 ---
 
@@ -190,7 +190,7 @@ Minor changes (fixing typos, clarifying language without changing meaning) will 
 
 If you have questions, concerns, or requests about your privacy:
 
-**Email:** privacy@flowapp.com  
+**Email:** privacy@centsible.app  
 **Response time:** We aim to respond within 2 business days.  
 **Mailing address:** [Company Name], [Address]
 

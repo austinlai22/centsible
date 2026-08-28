@@ -1,5 +1,5 @@
 /**
- * api.js — Centralised fetch wrapper for the flo·w backend
+ * api.js — Centralised fetch wrapper for the Centsible backend
  *
  * Why a wrapper instead of raw fetch everywhere?
  *   1. Single place to set credentials:true (required for HttpOnly cookies)
@@ -25,7 +25,7 @@ const BASE_URL = import.meta.env?.VITE_API_URL || "http://localhost:3001";
 // console immediately when the app boots.
 if (!import.meta.env?.VITE_API_URL && import.meta.env?.PROD) {
   console.warn(
-    "[flo·w] VITE_API_URL was not set at build time. " +
+    "[Centsible] VITE_API_URL was not set at build time. " +
     "All API calls will target http://localhost:3001, which will fail in production. " +
     "Set VITE_API_URL as a build-time environment variable and rebuild."
   );

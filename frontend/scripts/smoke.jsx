@@ -67,7 +67,7 @@ t("Transactions empty", <Transactions transactions={[]} loading={false} error={n
       reload={noop} addTxn={asyncNoop} updateTxn={asyncNoop} deleteTxn={asyncNoop}/>, "No transactions found");
 t("Goals empty", <Goals goals={[]} loading={false} error={null} reload={noop}
       addGoal={asyncNoop} updateGoal={asyncNoop} deleteGoal={asyncNoop} addFunds={asyncNoop}/>, "No goals yet");
-t("Rewards max level", <RewardsContent {...rewards} points={9999}/>, "Flow Master");
+t("Rewards max level", <RewardsContent {...rewards} points={9999}/>, "Cents Master");
 t("Summary error state", <Summary profile={{}} transactions={[]} goals={[]} points={0}
       accounts={[]} loading={false} error="Network down" reload={noop}/>, "Retry");
 t("Summary relink banner", <Summary profile={{}} transactions={[]} goals={[]} points={0}

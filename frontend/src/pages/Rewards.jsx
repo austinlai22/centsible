@@ -127,7 +127,7 @@ export function RewardsContent({points,redeemed,earn,redeem,startOnRedeem=false}
               <div style={{height:"100%",width:prog+"%",background:"var(--hero-accent)",borderRadius:4,transition:"width .6s ease"}}/>
             </div>
           </div>
-        ):<p style={{fontSize:13,color:"var(--hero-accent)",fontWeight:500,position:"relative"}}>🔥 Maximum level — you're a Flow Master!</p>}
+        ):<p style={{fontSize:13,color:"var(--hero-accent)",fontWeight:500,position:"relative"}}>🔥 Maximum level — you're a Cents Master!</p>}
       </div>
 
       <Card>

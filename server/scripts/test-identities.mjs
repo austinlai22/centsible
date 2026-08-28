@@ -89,7 +89,7 @@ await t("one google sub cannot be linked to two accounts", async () => {
     if (/unique|duplicate/i.test(e.message)) return;
     throw e;
   }
-  throw new Error("same Google account attached to two flo·w accounts");
+  throw new Error("same Google account attached to two Centsible accounts");
 });
 await t("deleting a user cascades their identities away", async () => {
   const d = await mk(`d${Date.now()}@t.test`, true);

@@ -122,7 +122,12 @@ export function verify(secretB32, token, { atMs = Date.now(), step = 30, digits 
  * some the other, and omitting either produces entries that all show up as
  * bare email addresses with no app name once a user has a few accounts.
  */
-export function toURI({ secret, accountName, issuer = "flow", digits = 6, step = 30, algorithm = "SHA1" }) {
+// NOTE ON RENAMING: the issuer is baked into the otpauth:// URI at enrolment,
+// so anyone who set up 2FA under a previous name keeps seeing that name in
+// their authenticator until they re-enrol. Their codes still work — the issuer
+// is a label, not part of the secret — so this is cosmetic, but it is why the
+// value should stop changing once real users exist.
+export function toURI({ secret, accountName, issuer = "Centsible", digits = 6, step = 30, algorithm = "SHA1" }) {
   const label = `${encodeURIComponent(issuer)}:${encodeURIComponent(accountName)}`;
   const params = new URLSearchParams({
     secret,

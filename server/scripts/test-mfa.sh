@@ -24,7 +24,7 @@ R=$(curl -s -b $J -X POST $API/auth/mfa/totp/start -H 'Content-Type: application
 SECRET=$(echo "$R" | sed 's/.*"secret":"\([^"]*\)".*/\1/')
 [ ${#SECRET} = 32 ] && ck "start returns a 32-char secret" 1 || ck "start returns a secret" 0 "$R"
 echo "$R" | grep -q '"qr":"data:image/png;base64' && ck "returns an inline QR data URI" 1 || ck "returns QR" 0 "no qr"
-echo "$R" | grep -q 'otpauth://totp/flow:' && ck "otpauth URI well-formed" 1 || ck "otpauth URI" 0 "no uri"
+echo "$R" | grep -q 'otpauth://totp/Centsible:' && ck "otpauth URI well-formed" 1 || ck "otpauth URI" 0 "no uri"
 
 R=$(curl -s -b $J $API/auth/mfa); echo "$R" | grep -q '"pendingSetup":true' && ck "unconfirmed factor does NOT enable MFA" 1 || ck "unconfirmed factor" 0 "$R"
 

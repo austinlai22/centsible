@@ -37,7 +37,7 @@ page.on("response", r => { if (r.status() === 401) unauthorized.push(`${r.reques
 page.on("pageerror", e => consoleErrors.push("pageerror: " + e.message));
 
 await page.goto(APP, { waitUntil: "networkidle" });
-ck("production bundle boots", await page.getByText(/your money, clearly/i).isVisible().catch(() => false));
+ck("production bundle boots", await page.getByText(/make your money last the term/i).isVisible().catch(() => false));
 ck("no CSP violations on load", cspViolations.length === 0, cspViolations[0]);
 
 // Full round trip through the built bundle.

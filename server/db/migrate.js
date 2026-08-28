@@ -110,12 +110,12 @@ CREATE TABLE IF NOT EXISTS auth_identities (
   email         TEXT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_used_at  TIMESTAMPTZ,
-  -- One provider account maps to exactly one flo·w account.
+  -- One provider account maps to exactly one Centsible account.
   UNIQUE (provider, provider_uid)
 );
 
 CREATE INDEX IF NOT EXISTS idx_auth_identities_user_id ON auth_identities(user_id);
--- ...and one flo·w account holds at most one identity per provider, so
+-- ...and one Centsible account holds at most one identity per provider, so
 -- "link Google" is idempotent rather than accumulating duplicate rows.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_auth_identities_user_provider
   ON auth_identities (user_id, provider);

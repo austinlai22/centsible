@@ -1,7 +1,7 @@
 {
-  "name": "flow-frontend",
+  "name": "centsible-frontend",
   "version": "1.0.0",
-  "description": "flo·w — personal finance MVP frontend",
+  "description": "Centsible — personal finance MVP frontend",
   "private": true,
   "type": "module",
   "scripts": {

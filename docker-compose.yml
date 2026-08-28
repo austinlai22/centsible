@@ -1,4 +1,4 @@
-# ─── flo·w — docker-compose ─────────────────────────────────────────────────────
+# ─── Centsible — docker-compose ─────────────────────────────────────────────────────
 #
 # Brings up Postgres + the API server together. Useful for:
 #   - Local development without installing Postgres natively

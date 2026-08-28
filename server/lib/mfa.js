@@ -103,7 +103,7 @@ export async function startTotpEnrolment(userId, accountName) {
 
   return {
     secret, // shown once, for users who type it in instead of scanning
-    uri: totp.toURI({ secret, accountName, issuer: "flow" }),
+    uri: totp.toURI({ secret, accountName, issuer: "Centsible" }),
   };
 }
 

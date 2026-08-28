@@ -4,6 +4,7 @@ import { CSS, S } from "./styles.js";
 import { NAV } from "./constants.js";
 import { getLevelInfo, semesterForDate } from "./lib/periods.js";
 import { Sheet, PageFallback } from "./components/ui.jsx";
+import { Brand } from "./components/Brand.jsx";
 
 import { useTransactions } from "./hooks/useTransactions.js";
 import { useAccounts }     from "./hooks/useApi.js";
@@ -33,11 +34,6 @@ const RewardsSheet = lazy(() => import("./pages/Rewards.jsx").then(m => ({ defau
  * it drops to roughly 2:1 and the dot effectively disappears, turning the
  * wordmark into "flo w".
  */
-const Brand = ({size=22, on="light"}) => (
-  <span style={{...S.display,fontSize:size,fontWeight:700,letterSpacing:"-0.03em"}}>
-    flo<span style={{color:on==="dark"?"var(--hero-accent)":"var(--primary)"}}>·</span>w
-  </span>
-);
 
 export default function App(){
   // authUser.onboarded_at (from the DB) is the single source of truth for
@@ -99,7 +95,6 @@ export default function App(){
           await termsH.reload();
         } catch { /* correctable later in Settings */ }
       }
-
 
     } catch (e) {
       alert("Couldn't save your info — please try again. (" + e.message + ")");

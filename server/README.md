@@ -1,4 +1,4 @@
-# flo·w — Backend Server
+# Centsible — Backend Server
 
 Express + PostgreSQL backend. All Plaid API calls happen here — the frontend never touches a Plaid token.
 

@@ -1,5 +1,5 @@
 /**
- * flo·w — Express server entry point
+ * Centsible — Express server entry point
  *
  * Security layers applied here (in order):
  *  1. Helmet       — sets secure HTTP headers (XSS, clickjacking, MIME sniffing, etc.)
@@ -87,7 +87,7 @@ app.use(cors({
 // Auth endpoints get a stricter limiter defined in routes/auth.js.
 //
 // /plaid/webhook is exempted via `skip` below: webhook calls all originate
-// from Plaid's own infrastructure (shared IPs across every flo·w customer's
+// from Plaid's own infrastructure (shared IPs across every Centsible customer's
 // webhook traffic, not just yours), so a busy sync period for other users
 // could exhaust this bucket and cause Plaid to drop legitimate events for
 // you. The webhook endpoint doesn't need this protection anyway — it's
@@ -219,7 +219,7 @@ let server;
 async function start() {
   await testConnection(); // Verify DB is reachable before accepting traffic
   server = app.listen(PORT, () => {
-    console.log(`[flow-server] Running on port ${PORT} (${process.env.NODE_ENV})`);
+    console.log(`[centsible-server] Running on port ${PORT} (${process.env.NODE_ENV})`);
   });
 }
 
@@ -245,10 +245,10 @@ start().catch(err => {
 // typically force-kill after ~10-30s anyway, so this just makes the exit
 // intentional rather than forced.
 async function shutdown(signal) {
-  console.log(`[flow-server] Received ${signal}, shutting down gracefully…`);
+  console.log(`[centsible-server] Received ${signal}, shutting down gracefully…`);
 
   const forceExitTimer = setTimeout(() => {
-    console.error("[flow-server] Shutdown timed out — forcing exit");
+    console.error("[centsible-server] Shutdown timed out — forcing exit");
     process.exit(1);
   }, 10_000);
 
@@ -257,14 +257,14 @@ async function shutdown(signal) {
       await new Promise((resolve, reject) => {
         server.close(err => err ? reject(err) : resolve());
       });
-      console.log("[flow-server] HTTP server closed — no longer accepting requests");
+      console.log("[centsible-server] HTTP server closed — no longer accepting requests");
     }
     await pool.end();
-    console.log("[flow-server] Database pool closed");
+    console.log("[centsible-server] Database pool closed");
     clearTimeout(forceExitTimer);
     process.exit(0);
   } catch (err) {
-    console.error("[flow-server] Error during shutdown:", err.message);
+    console.error("[centsible-server] Error during shutdown:", err.message);
     clearTimeout(forceExitTimer);
     process.exit(1);
   }

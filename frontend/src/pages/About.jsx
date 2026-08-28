@@ -146,7 +146,7 @@ export default function About({
         <button onClick={onLogout} style={{background:"#fff",border:"1px solid var(--line)",borderRadius:14,padding:"15px",fontSize:15,fontWeight:500,cursor:"pointer",color:"var(--danger)",display:"flex",alignItems:"center",justifyContent:"center",gap:8,minHeight:48}}>
           ⏻ Log out
         </button>
-        <p style={{textAlign:"center",fontSize:12,color:"var(--subtle)",paddingBottom:8}}>flo·w v1.0.0 · Made with care</p>
+        <p style={{textAlign:"center",fontSize:12,color:"var(--subtle)",paddingBottom:8}}>Centsible v1.0.0 · Made with care</p>
       </div>
 
       {section==="profile"&&(

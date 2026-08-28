@@ -2,6 +2,7 @@ import { useState } from "react";
 import { authApi, mfaApi, ApiError } from "../api.js";
 import { S } from "../styles.js";
 import { Spinner } from "../components/ui.jsx";
+import { Brand } from "../components/Brand.jsx";
 
 const IS = {width:"100%",background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.15)",borderRadius:12,padding:"13px 16px",color:"var(--hero-ink)",fontSize:16,outline:"none"};
 
@@ -133,8 +134,8 @@ export function AuthScreen({onAuth}){
     <div style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--hero)",padding:24}}>
       <div style={{width:"100%",maxWidth:420}}>
         <div style={{textAlign:"center",marginBottom:44}}>
-          <span style={{...S.display,fontSize:36,color:"var(--hero-ink)",fontWeight:300,letterSpacing:"-1px"}}>flo<span style={{color:"var(--hero-accent)"}}>·</span>w</span>
-          <p style={{color:"var(--hero-muted)",fontSize:14,marginTop:6}}>Your money, clearly.</p>
+          <span style={{color:"var(--hero-ink)"}}><Brand size={36} on="dark"/></span>
+          <p style={{color:"var(--hero-muted)",fontSize:14,marginTop:6}}>Make your money last the term.</p>
         </div>
 
         {mfaStep ? (

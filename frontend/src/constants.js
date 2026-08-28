@@ -16,7 +16,7 @@ export const LEVELS = [
   {level:2,name:"Budgeter",   icon:"🌿",min:200,  color:"#2a78d6"},
   {level:3,name:"Saver",      icon:"🌳",min:500,  color:"#0e9bb5"},
   {level:4,name:"Strategist", icon:"⚡",min:1000, color:"#9c36b5"},
-  {level:5,name:"Flow Master",icon:"🔥",min:2000, color:"#eb6834"},
+  {level:5,name:"Cents Master",icon:"🔥",min:2000, color:"#eb6834"},
 ];
 
 export const CHARITIES = [
@@ -138,20 +138,20 @@ export const ONBOARDING_STEPS = [
   {id:"name", q:"What should we call you?", type:"text", placeholder:"Your first name"},
 
   {id:"term", q:"When does your current term run?", type:"daterange",
-   hint:"flo·w measures how long your money has to last against your term. You can change these dates any time in Settings."},
+   hint:"Centsible measures how long your money has to last against your term. You can change these dates any time in Settings."},
 ];
 
 export const PRIVACY_SECTIONS = [
   {title:"The short version",         body:"• We collect only what we need to make the app work for you.\n• We do not sell your data. Ever. To anyone.\n• We do not use your financial data to train AI models or for advertising.\n• You can export or delete everything we have on you, at any time.\n• If something changes, we'll tell you clearly before it takes effect."},
-  // Keep in sync with §2a of flow-privacy-policy.md — this is the same
+  // Keep in sync with §2a of centsible-privacy-policy.md — this is the same
   // disclosure, and the two disagreeing is itself a compliance problem.
   {title:"What we collect and why",   body:"Name: to personalise your experience.\n\nEmail address: to identify your account, sign you in, and contact you about account or security issues.\n\nPhone number (optional): to secure your account with multi-factor authentication. Never used for marketing.\n\nYour term dates, and optionally your course stage and expected aid: to work out how long your money has to last.\n\nTransactions you enter: to power your budget, breakdowns, and goal tracking.\n\nBank data (if connected): retrieved via a secure financial data provider (e.g. Plaid). We never see your bank username or password. You can disconnect at any time in Settings.\n\nApp diagnostics (crash logs, OS version): to fix bugs only. We do not access your location, contacts, camera, or microphone."},
-  {title:"How we use your information",body:"Your data serves exactly one purpose: making flo·w useful to you.\n\nWe use it to show your spending summaries, budget progress, and goal tracking; generate alerts; calculate your financial health score and rewards; send notifications you've opted into; and improve the app from anonymised aggregate patterns.\n\nWe do NOT use your data to train AI models, serve ads, build third-party profiles, or make automated decisions affecting your finances."},
+  {title:"How we use your information",body:"Your data serves exactly one purpose: making Centsible useful to you.\n\nWe use it to show your spending summaries, budget progress, and goal tracking; generate alerts; calculate your financial health score and rewards; send notifications you've opted into; and improve the app from anonymised aggregate patterns.\n\nWe do NOT use your data to train AI models, serve ads, build third-party profiles, or make automated decisions affecting your finances."},
   {title:"Who we share your data with",body:"We share the minimum necessary with service providers who help us operate the app. Every provider is contractually prohibited from using your data for anything beyond the specific service they provide.\n\nWe do not share with advertisers, data brokers, or other users."},
   {title:"Your rights and controls",  body:"Access: request a full export via Settings → Privacy.\n\nDeletion: delete your account and all data via Settings → Privacy → Delete my account. Data permanently removed within 30 days.\n\nCalifornia residents (CCPA): right to know, delete, opt out of sale (we don't sell it), and non-discrimination. We extend these rights to all users."},
   {title:"Security",                  body:"TLS 1.3 in transit. AES-256 at rest. Minimal staff access, all logged. No bank credentials stored. Breach notification within 72 hours."},
   {title:"Changes to this policy",    body:"Material changes notified in-app 30 days before effect, with your explicit acknowledgement required."},
-  {title:"Contact",                   body:"privacy@flowapp.com — we respond within 2 business days."},
+  {title:"Contact",                   body:"privacy@centsible.app — we respond within 2 business days."},
 ];
 
 export const NAV = [

@@ -1,4 +1,4 @@
-# flo·w — Production Deployment Guide
+# Centsible — Production Deployment Guide
 
 This covers taking the backend from local development to a real, publicly
 reachable deployment. Three paths are documented: a managed platform
@@ -70,8 +70,8 @@ service — see Option D below for the full self-hosted flow. If building the
 frontend image standalone:
 ```bash
 cd frontend
-docker build --build-arg VITE_API_URL=https://your-api-domain.com -t flow-frontend .
-docker run -p 8080:80 flow-frontend
+docker build --build-arg VITE_API_URL=https://your-api-domain.com -t centsible-frontend .
+docker run -p 8080:80 centsible-frontend
 ```
 The `--build-arg` is required — passing `VITE_API_URL` as a runtime
 `-e` variable instead has no effect, because Vite already baked the old
@@ -104,7 +104,7 @@ which is a poor fit for an app people check weekly.
 
 ### The trap that will bite you: third-party cookies
 
-flo·w authenticates with HttpOnly cookies. If the app is served from
+Centsible authenticates with HttpOnly cookies. If the app is served from
 `your-app.vercel.app` and the API lives at `your-api.onrender.com`, those are
 different *sites*, so the session cookies are third-party. **Safari blocks
 third-party cookies by default and Chrome is phasing them out.** Login appears

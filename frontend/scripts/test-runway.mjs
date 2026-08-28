@@ -1,5 +1,5 @@
 /**
- * Runway model tests — the numbers behind flo·w's actual differentiator.
+ * Runway model tests — the numbers behind Centsible's actual differentiator.
  * If these are wrong the app gives a student false confidence about whether
  * their money reaches the end of term, which is worse than saying nothing.
  */

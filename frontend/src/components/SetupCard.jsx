@@ -17,7 +17,7 @@ import { TERM_SYSTEMS, STUDENT_TYPES, suggestDisbursementDate, explainDisburseme
  * disappears for good once the profile is complete.
  */
 
-const DISMISS_KEY = "flow.setup.dismissed";
+const DISMISS_KEY = "centsible.setup.dismissed";
 
 export function isProfileComplete(user) {
   if (!user) return true;

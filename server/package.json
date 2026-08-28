@@ -1,7 +1,7 @@
 {
-  "name": "flow-server",
+  "name": "centsible-server",
   "version": "1.0.0",
-  "description": "flo·w backend — Express + PostgreSQL",
+  "description": "Centsible backend — Express + PostgreSQL",
   "main": "index.js",
   "type": "module",
   "scripts": {

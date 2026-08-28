@@ -64,7 +64,7 @@ router.post("/create-link-token", async (req, res, next) => {
   try {
     const response = await plaidClient.linkTokenCreate({
       user:     { client_user_id: req.userId },
-      client_name:  "flo·w",
+      client_name:  "Centsible",
       products:     [Products.Transactions],
       country_codes:[CountryCode.Us],
       language:     "en",

@@ -215,7 +215,7 @@ const IS_PROD = process.env.NODE_ENV === "production";
 
 // SameSite policy:
 //   "none"   — required when the frontend and backend are on different
-//              domains (e.g. app.flowapp.com calling api.flowapp.com, or
+//              domains (e.g. app.centsible.app calling api.centsible.app, or
 //              a Vercel frontend calling a Railway backend) — this is the
 //              realistic default deployment shape for this app. "none"
 //              REQUIRES secure:true, which is already enforced below.
