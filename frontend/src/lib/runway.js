@@ -15,7 +15,7 @@
  * LLM could phrase this more warmly but cannot make it more true.
  */
 
-import { termForDate, isTransfer } from "./periods.js";
+import { termForDate, isTransfer, isTermItem } from "./periods.js";
 
 const DAY = 86_400_000;
 const iso = (d) => d.toISOString().slice(0, 10);
@@ -49,6 +49,16 @@ export function computeRunway(transactions = [], accounts = [], refDate = new Da
   const nextDisbursement = (disbursements || [])
     .filter(d => !d.received_on && d.expected_on > today)
     .sort((a, b) => a.expected_on.localeCompare(b.expected_on))[0] || null;
+
+  /**
+   * A payment that was due and never marked received. This is the moment a
+   * student is most exposed — they are spending against money that has not
+   * arrived — and it was previously invisible: the horizon filter skips past
+   * dates, so an overdue payment simply vanished from the calculation.
+   */
+  const overdueDisbursement = (disbursements || [])
+    .filter(d => !d.received_on && d.expected_on <= today)
+    .sort((a, b) => b.expected_on.localeCompare(a.expected_on))[0] || null;
 
   const horizonDate = nextDisbursement && nextDisbursement.expected_on < term.end
     ? nextDisbursement.expected_on
@@ -86,17 +96,32 @@ export function computeRunway(transactions = [], accounts = [], refDate = new Da
   const source     = depository.length ? "balance" : "flow";
   const available  = source === "balance" ? balance : termIncome - termSpend;
 
-  // Burn rate from a trailing window rather than the whole term: spending
-  // early in term (deposits, textbooks) is not representative of the rest.
-  const windowStart = iso(new Date(refDate.getTime() - burnWindowDays * DAY));
+  /**
+   * Burn rate — the ONGOING daily spend, which is a narrower thing than "money
+   * that left the account". Two exclusions matter, and both were wrong before:
+   *
+   *   Term items. A tuition bill or a housing deposit is a known one-off. Left
+   *   in, a single $9,000 payment took a steady $40/day student to $340/day and
+   *   the app told a solvent person they had days left.
+   *
+   *   Anything before this term started. The window is a trailing 30 days, but
+   *   the divisor is days elapsed IN TERM. Five days into a new term that
+   *   divided a month of last term's spending by five — a measured 66x
+   *   overstatement. Clamping the window to the term start keeps numerator and
+   *   denominator describing the same period.
+   */
+  const rawWindowStart = iso(new Date(refDate.getTime() - burnWindowDays * DAY));
+  const windowStart    = rawWindowStart > term.start ? rawWindowStart : term.start;
   const windowSpend = (transactions || [])
     .filter(t => {
       const d = String(t.date || "").slice(0, 10);
-      return d >= windowStart && d <= today && t.type !== "income" && !isTransfer(t.category);
+      return d >= windowStart && d <= today
+          && t.type !== "income" && !isTransfer(t.category) && !isTermItem(t.category);
     })
     .reduce((s, t) => s + (Number(t.amount) || 0), 0);
 
-  const observedDays = Math.max(1, Math.min(burnWindowDays, daysElapsed || burnWindowDays));
+  // Days actually covered by that window, never more than the term has run.
+  const observedDays = Math.max(1, Math.min(daysBetween(windowStart, today) || 1, burnWindowDays));
   const burnPerDay   = windowSpend / observedDays;
 
   // What they COULD spend per day and still reach the end of term.
@@ -122,7 +147,7 @@ export function computeRunway(transactions = [], accounts = [], refDate = new Da
   const hasEnoughData = inTerm.length > 0 && daysElapsed >= 3;
 
   return {
-    term, horizonDate, horizonKind, nextDisbursement,
+    term, horizonDate, horizonKind, nextDisbursement, overdueDisbursement,
     daysTotal, daysElapsed, daysRemaining,
     termIncome, termSpend,
     available, source,

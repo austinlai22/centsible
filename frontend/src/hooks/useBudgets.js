@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { budgetsApi } from "../api.js";
-import { monthKey, semesterForDate } from "../lib/periods.js";
+import { monthKey, termForDate } from "../lib/periods.js";
 import { useApi } from "./useApi.js";
 
 /**
@@ -12,7 +12,7 @@ import { useApi } from "./useApi.js";
  * Toggling period is purely a DISPLAY concern handled by Budget's
  * displayBudget() — it does not refetch and does not change what's stored.
  */
-export function useBudgets(enabled = true) {
+export function useBudgets(enabled = true, terms = null) {
   // Purely UI state: which number displayBudget() shows, and which window
   // catSpendMap() sums actual spend over.
   const [period, setPeriod] = useState("monthly"); // "monthly" | "semester"
@@ -24,7 +24,12 @@ export function useBudgets(enabled = true) {
   const [refDate, setRefDate] = useState(new Date());
 
   const month    = monthKey(refDate);
-  const semester = semesterForDate(refDate).start;
+  // Keyed to the USER's term, matching what Budget displays. Using the
+  // built-in calendar here while the page rendered the user's own term meant a
+  // Michaelmas student saw "Michaelmas" on screen while their tuition budget
+  // was filed under the built-in Fall start date — the value they entered
+  // reappeared under a different term, or not at all.
+  const semester = termForDate(refDate, terms).start;
 
   const { data: serverBudgets, loading, error, reload } = useApi(
     async () => {

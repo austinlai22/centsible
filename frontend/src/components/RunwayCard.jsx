@@ -36,6 +36,10 @@ export function RunwayCard({ transactions, accounts, refDate = new Date(), terms
     ? `${prettyDate(r.horizonDate)} (${r.nextDisbursement.label})`
     : prettyDate(r.horizonDate);
 
+  // An expected payment that never arrived outranks everything else on this
+  // card: the student is spending against money that is not there.
+  const overdue = r.overdueDisbursement;
+
   // Say nothing rather than project from noise. A confident-looking number
   // built on two transactions is worse than an honest prompt.
   if (!r.hasEnoughData) {
@@ -66,7 +70,27 @@ export function RunwayCard({ transactions, accounts, refDate = new Date(), terms
     : 100;
 
   return (
-    <Card style={{borderLeft:`3px solid ${tone.color}`, paddingLeft:21}}>
+    <Card style={{borderLeft:`3px solid ${overdue ? "var(--danger)" : tone.color}`, paddingLeft:21}}>
+      {overdue && (
+        <div style={{background:"var(--danger-bg)",border:"1px solid var(--danger-line)",
+                     borderRadius:"var(--r-md)",padding:"12px 14px",marginBottom:14}}>
+          <p style={{fontSize:13,color:"var(--danger)",lineHeight:1.6}}>
+            <strong>{overdue.label}</strong> was expected {prettyDate(overdue.expected_on)} and
+            hasn't been marked as received. If it hasn't arrived, the figures below are
+            counting on money you don't have yet.
+          </p>
+        </div>
+      )}
+
+      {r.term.source === "stale" && (
+        <div style={{background:"var(--warning-bg)",border:"1px solid var(--warning-line)",
+                     borderRadius:"var(--r-md)",padding:"12px 14px",marginBottom:14}}>
+          <p style={{fontSize:13,color:"var(--warning)",lineHeight:1.6}}>
+            Your last term has ended. These figures use standard semester dates —
+            add your next term in Settings → Study calendar to make them yours.
+          </p>
+        </div>
+      )}
       <div style={{...S.between, gap:12, flexWrap:"wrap", marginBottom:14}}>
         <div style={{minWidth:0}}>
           <p style={{fontSize:11,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".08em",fontWeight:600}}>

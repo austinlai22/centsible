@@ -26,7 +26,10 @@ export default function Summary({profile,user,setUser,transactions,goals,points,
   // Scoped to the current calendar month. The previous version summed EVERY
   // transaction ever loaded (including demo rows from other months) while the
   // hero read "May 2025" — so the headline numbers never matched the label.
-  const { income, expenses, saved, savingsRate: sr, hasIncome } = periodTotals(transactions, now);
+  // disbursements are passed so a BANK-SYNCED aid payment is recognised too.
+  // Plaid categorises income as "Other", so without this a lump-sum refund
+  // reads as ordinary monthly income and inflates the rate to ~94%.
+  const { income, expenses, saved, savingsRate: sr, hasIncome } = periodTotals(transactions, now, disbursements);
   const periodLabel = `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`;
 
   // Summary is a general overview, not a period-specific budget view, so it

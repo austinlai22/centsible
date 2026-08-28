@@ -29,6 +29,41 @@ export const isTransfer = (category) => CATEGORY_META[category]?.transfer === tr
  */
 export const isTermItem = (category) => CATEGORY_META[category]?.period === "semester";
 
+/**
+ * Does this income transaction look like a recorded aid payment?
+ *
+ * Excluding the Disbursement CATEGORY from the monthly rate only helps when the
+ * user categorised it themselves. Plaid maps INCOME and PAYROLL to "Other"
+ * (lib/plaid.js), so a bank-synced aid refund arrives as ordinary monthly
+ * income and read as a 93% savings rate in testing — the exact distortion the
+ * exclusion was meant to prevent.
+ *
+ * The user has already told us what to expect, so match against it rather than
+ * guessing from size alone: a real income transaction close in amount and date
+ * to a recorded disbursement is that disbursement. Tolerances are deliberately
+ * loose — schools deduct fees before refunding, and the money lands days either
+ * side of the expected date.
+ */
+export function matchesDisbursement(txn, disbursements = []) {
+  if (!disbursements?.length || txn?.type !== "income") return false;
+  const amount = Math.abs(Number(txn.amount) || 0);
+  const date   = String(txn.date || "").slice(0, 10);
+  if (!amount || !date) return false;
+
+  const AMOUNT_TOLERANCE = 0.25;   // fees and adjustments come off the top
+  const DAY_TOLERANCE    = 21;     // disbursement to refund can take weeks
+
+  return disbursements.some(d => {
+    const expected = Math.abs(Number(d.amount) || 0);
+    if (!expected) return false;
+    if (Math.abs(amount - expected) / expected > AMOUNT_TOLERANCE) return false;
+    const anchor = d.received_on || d.expected_on;
+    if (!anchor) return false;
+    const gap = Math.abs((new Date(date) - new Date(anchor)) / 86400000);
+    return gap <= DAY_TOLERANCE;
+  });
+}
+
 /** Current level, the next one up, and progress toward it. */
 export function getLevelInfo(pts){
   const points = Number(pts) || 0;
@@ -60,6 +95,13 @@ export function termForDate(date = new Date(), terms = null){
     // honest answer — spending now still has to reach it.
     const upcoming = terms.filter(t => t.start_date > iso).sort((a,b)=>a.start_date.localeCompare(b.start_date))[0];
     if (upcoming) return { name: upcoming.name, start: upcoming.start_date, end: upcoming.end_date, source: "user-upcoming" };
+
+    // The user HAS a calendar, but it has run out — today is past every term
+    // they entered. Quietly reverting to the built-in US semester would show a
+    // quarter-system student boundaries that are not theirs, and the runway
+    // computed from them would be wrong without ever saying so. Flag it so the
+    // UI can ask for the next term instead of inventing one.
+    return { ...semesterForDate(date), source: "stale" };
   }
   return { ...semesterForDate(date), source: "default" };
 }
@@ -162,7 +204,7 @@ export function catSpendMap(transactions, activeView="monthly", refDate=new Date
  * label a period and actually mean it. The previous version summed EVERY
  * transaction ever loaded while displaying a hardcoded "May 2025" header.
  */
-export function periodTotals(transactions, refDate=new Date()){
+export function periodTotals(transactions, refDate=new Date(), disbursements=[]){
   const y=refDate.getFullYear(), mo=refDate.getMonth();
   const start=`${y}-${String(mo+1).padStart(2,"0")}-01`;
   const nextM=new Date(y,mo+1,1);
@@ -173,8 +215,10 @@ export function periodTotals(transactions, refDate=new Date()){
     const date=String(t.date||"").slice(0,10);
     if(date<start || date>=end) continue;
     // Transfers between the user's own accounts are neither income nor
-    // spending; term items belong to the runway, not to a monthly rate.
+    // spending; term items belong to the runway, not to a monthly rate; and a
+    // bank-synced aid payment is a term item wearing the wrong category.
     if(isTransfer(t.category) || isTermItem(t.category)) continue;
+    if(matchesDisbursement(t, disbursements)) continue;
     if(t.type==="income") income+=Number(t.amount)||0;
     else                  expenses+=Number(t.amount)||0;
   }

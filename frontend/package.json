@@ -11,7 +11,8 @@
     "smoke": "esbuild scripts/smoke.jsx --bundle --platform=node --format=cjs --jsx=automatic --outfile=node_modules/.cache/smoke.cjs --log-level=error && node node_modules/.cache/smoke.cjs",
     "test:runway": "node scripts/test-runway.mjs",
     "test:onboarding": "node scripts/test-onboarding.mjs",
-    "preflight": "bash ../scripts/preflight.sh"
+    "preflight": "bash ../scripts/preflight.sh",
+    "test:audit": "node scripts/test-audit.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

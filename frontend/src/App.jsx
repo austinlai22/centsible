@@ -60,10 +60,10 @@ export default function App(){
   const txn      = useTransactions(authed);
   const accounts = useAccounts(authed);
   const goals    = useGoals(authed);
-  const budgets  = useBudgets(authed);
-  const rewards  = useRewards(authed);
   const termsH   = useTerms(authed);
   const disbH    = useDisbursements(authed);
+  const budgets  = useBudgets(authed, termsH.terms);
+  const rewards  = useRewards(authed);
 
   useEffect(()=>{
     authApi.me()
