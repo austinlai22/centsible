@@ -19,7 +19,7 @@
  */
 
 import crypto from "crypto";
-import jose   from "node-jose";
+import { importJWK, jwtVerify } from "jose";
 import { plaidClient } from "../lib/plaid.js";
 
 // In-memory key cache: { [kid]: { jwk, fetchedAt } }
@@ -36,9 +36,11 @@ async function getPublicKey(kid) {
   const res  = await plaidClient.webhookVerificationKeyGet({ key_id: kid });
   const jwk  = res.data.key;
 
-  // Parse into a node-jose key object for verification
-  const keystore = jose.JWK.createKeyStore();
-  const key = await keystore.add(jwk, "json");
+  // Plaid signs webhooks with ES256. Passing the algorithm explicitly rather
+  // than letting it be inferred from the JWK matters: an attacker who could
+  // influence the key document should never be able to talk us into a weaker
+  // algorithm.
+  const key = await importJWK(jwk, "ES256");
 
   keyCache.set(kid, { key, fetchedAt: Date.now() });
   return key;
@@ -82,10 +84,20 @@ export async function verifyPlaidWebhook(req, res, next) {
     // ── Step 3: Verify JWT signature ──────────────────────────────────────────
     let payload;
     try {
-      const verified = await jose.JWS.createVerify(publicKey).verify(signedJwt);
-      payload = JSON.parse(verified.payload.toString());
+      // jwtVerify also enforces exp/nbf if present, which the previous
+      // JWS-only check did not.
+      ({ payload } = await jwtVerify(signedJwt, publicKey, { algorithms: ["ES256"] }));
     } catch (_) {
       return res.status(400).json({ error: "Webhook signature verification failed" });
+    }
+
+    // ── Step 3b: Reject stale signatures ──────────────────────────────────────
+    // Plaid's JWT carries iat. Without a freshness check, a valid webhook
+    // captured once can be replayed indefinitely — the signature never stops
+    // being valid on its own.
+    const MAX_AGE_SECONDS = 5 * 60;
+    if (typeof payload.iat !== "number" || Math.abs(Date.now() / 1000 - payload.iat) > MAX_AGE_SECONDS) {
+      return res.status(400).json({ error: "Webhook timestamp outside the accepted window" });
     }
 
     // ── Step 4: Verify body hash ──────────────────────────────────────────────

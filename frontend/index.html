@@ -41,11 +41,12 @@
         cdn.plaid.com                             → Plaid Link SDK + iframe
         connect-src 'self' + your API origin      → fetch() calls to the backend
 
-      ⚠️ http://localhost:3001 below is a LOCAL DEV PLACEHOLDER. Before
-      building for production, replace it with your real deployed API URL
-      (the same value as VITE_API_URL in the production build) — otherwise
-      the browser blocks every API call even though backend CORS would allow
-      it, and the failure looks like a network error rather than a policy one.
+      __API_ORIGIN__ is substituted at build time by the csp-api-origin plugin
+      in vite.config.js, from VITE_API_URL. It used to be a hardcoded
+      http://localhost:3001 with a comment asking the developer to remember to
+      change it — which is exactly how a build ships with the browser blocking
+      every API call. The failure mode is nasty: CORS on the backend is fine,
+      so it presents as an unexplained network error rather than a policy one.
 
       frame-ancestors is deliberately absent: browsers ignore it in a <meta>
       CSP. It is set as a real response header in nginx.conf instead.
@@ -58,7 +59,7 @@
         form-action 'self';
         object-src 'none';
         script-src 'self' https://cdn.plaid.com;
-        connect-src 'self' https://cdn.plaid.com https://*.plaid.com http://localhost:3001;
+        connect-src 'self' https://cdn.plaid.com https://*.plaid.com __API_ORIGIN__;
         frame-src https://cdn.plaid.com;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src 'self' https://fonts.gstatic.com;

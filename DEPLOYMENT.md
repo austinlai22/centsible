@@ -87,6 +87,89 @@ configuration if your host needs you to specify this manually.
 
 ---
 
+## The $0 stack (recommended for launch)
+
+Verified against current free tiers. Three services, no card required:
+
+| Piece | Service | Free tier | Catch |
+|---|---|---|---|
+| Frontend | **Vercel** (or Netlify / Cloudflare Pages) | Unlimited static hosting | none |
+| API | **Render** web service | 750 instance-hours/month | spins down when idle → ~30–60s cold start |
+| Database | **Neon** | 0.5 GB, permanent | exceeding the allowance suspends compute until next month; nothing is deleted |
+
+**Use Neon, not Render's Postgres.** Render's free database is *deleted after
+30 days*. Neon's free tier is permanent and suspends rather than destroys.
+Supabase's free tier also works but pauses a project after a week of inactivity,
+which is a poor fit for an app people check weekly.
+
+### The trap that will bite you: third-party cookies
+
+flo·w authenticates with HttpOnly cookies. If the app is served from
+`your-app.vercel.app` and the API lives at `your-api.onrender.com`, those are
+different *sites*, so the session cookies are third-party. **Safari blocks
+third-party cookies by default and Chrome is phasing them out.** Login appears
+to succeed and then every subsequent request arrives with no cookie at all.
+
+Setting `SameSite=None` does not fix this — that is exactly the flag those
+browsers are declining to honour.
+
+The fix, at no cost: **proxy the API through the frontend's own origin.**
+`frontend/vercel.json` already does this. Point its rewrite at your API host,
+then set:
+
+```
+# Vercel (frontend) environment
+VITE_API_URL=/api-proxy
+
+# Render (backend) environment
+COOKIE_SAME_SITE=lax
+CLIENT_ORIGIN=https://your-app.vercel.app
+```
+
+The browser now sees same-origin requests, cookies are first-party, and CORS
+preflights disappear from every mutation. (The alternative is a custom domain
+with `app.` and `api.` subdomains, which also works — but costs ~$10/year.)
+
+### Deploy order
+
+```bash
+# 1. Database — create a project at neon.tech, copy the connection string
+# 2. Backend — Render → New Web Service → root directory: server
+#    Set every variable from server/.env.example, then:
+#      DATABASE_URL=<neon connection string>
+#      NODE_ENV=production
+#      COOKIE_SAME_SITE=lax
+#      CLIENT_ORIGIN=https://your-app.vercel.app
+#    Run the migration once from Render's shell:
+npm run db:migrate
+
+# 3. Frontend — Vercel → import repo → root directory: frontend
+#    Edit frontend/vercel.json first: replace REPLACE-WITH-YOUR-API-HOST
+#    Set VITE_API_URL=/api-proxy
+```
+
+Before any of that, run the readiness check from the repo root:
+
+```bash
+bash scripts/preflight.sh
+```
+
+It fails the things that ship silently broken — unfilled legal placeholders, a
+hardcoded CSP origin, tracked secrets, vulnerable dependencies.
+
+### What $0 does not buy you
+
+**Plaid sandbox cannot connect real banks.** Sandbox credentials only work
+against Plaid's fake test institutions. Real bank linking needs Production
+access, which is an application plus per-item pricing. Until then the app is
+fully usable with manually entered transactions — the runway, budgets, and
+goals all work without a linked bank.
+
+Render's cold starts are the other real cost: the first request after idle
+takes 30–60 seconds. Acceptable for early users, not for a launch you promote.
+
+---
+
 ## Backend: where to host it
 
 

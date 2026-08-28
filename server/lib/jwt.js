@@ -24,7 +24,6 @@
  */
 
 import jwt        from "jsonwebtoken";
-import { v4 as uuid } from "uuid";
 import crypto     from "crypto";
 import { query }  from "../db/client.js";
 
@@ -106,7 +105,9 @@ export function verifyMfaPendingToken(token) {
  * 32 random bytes rather than a UUID: uuid v4 carries 122 bits of entropy and
  * a recognisable structure, randomBytes(32) gives a full 256 with none.
  */
-export async function issueRefreshToken(userId, familyId = uuid()) {
+// crypto.randomUUID() is built into Node 18+, so the uuid package earned
+// nothing but a dependency (and a moderate CVE via node-jose).
+export async function issueRefreshToken(userId, familyId = crypto.randomUUID()) {
   const raw  = crypto.randomBytes(32).toString("base64url");
   const hash = hashToken(raw);
 

@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "smoke": "esbuild scripts/smoke.jsx --bundle --platform=node --format=cjs --jsx=automatic --outfile=node_modules/.cache/smoke.cjs --log-level=error && node node_modules/.cache/smoke.cjs",
     "test:runway": "node scripts/test-runway.mjs",
-    "test:onboarding": "node scripts/test-onboarding.mjs"
+    "test:onboarding": "node scripts/test-onboarding.mjs",
+    "preflight": "bash ../scripts/preflight.sh"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -19,6 +20,7 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
     "esbuild": "^0.21.5",
+    "playwright": "^1.62.1",
     "vite": "^5.4.1"
   }
 }
