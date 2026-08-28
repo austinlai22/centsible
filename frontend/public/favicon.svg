@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Centsible">
+  <!-- Cent sign on the brand teal: the pun in one glyph, legible at 16px. -->
+  <rect width="64" height="64" rx="14" fill="#0B6E78"/>
+  <text x="32" y="45" font-family="Plus Jakarta Sans, Inter, system-ui, sans-serif"
+        font-size="40" font-weight="700" fill="#FFFFFF" text-anchor="middle">¢</text>
+</svg>

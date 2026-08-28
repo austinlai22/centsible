@@ -1,0 +1,7 @@
+# Centsible — the app itself is behind authentication and has nothing
+# crawlable, so there is no benefit to indexing it and a small privacy benefit
+# to not doing so. Loosen this if a marketing page is added at the root.
+User-agent: *
+Disallow:
+
+Sitemap:

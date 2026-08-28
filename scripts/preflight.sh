@@ -43,6 +43,19 @@ if grep -q "REPLACE-WITH-YOUR-API-HOST" frontend/vercel.json 2>/dev/null; then
 else ok "vercel.json proxy destination is set"; fi
 
 echo
+echo "── things users notice ──────────────────────────────────────────────────"
+if grep -rq "componentDidCatch" frontend/src 2>/dev/null; then
+  ok "a render error is caught, not a white screen"
+else bad "no React error boundary" "any component throwing blanks the entire app"; fi
+
+if [ -f frontend/public/favicon.svg ] && grep -q 'rel="icon"' frontend/index.html 2>/dev/null; then
+  ok "favicon present and linked"
+else note "no favicon" "a blank tab icon reads as unfinished on a finance app"; fi
+
+if ls *terms* >/dev/null 2>&1; then ok "terms of service present"
+else note "no terms of service" "you have a privacy policy but no ToS — worth legal input before taking real users"; fi
+
+echo
 echo "── dependencies ─────────────────────────────────────────────────────────"
 for d in server frontend; do
   OUT=$( (cd "$d" && npm audit --omit=dev --json 2>/dev/null) )

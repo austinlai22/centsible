@@ -5,6 +5,7 @@ import { NAV } from "./constants.js";
 import { getLevelInfo, semesterForDate } from "./lib/periods.js";
 import { Sheet, PageFallback } from "./components/ui.jsx";
 import { Brand } from "./components/Brand.jsx";
+import { ErrorBoundary } from "./components/ErrorBoundary.jsx";
 
 import { useTransactions } from "./hooks/useTransactions.js";
 import { useAccounts }     from "./hooks/useApi.js";
@@ -203,9 +204,13 @@ export default function App(){
           </header>
 
           <main className="content">
-            <Suspense fallback={<PageFallback/>}>
-              <Page/>
-            </Suspense>
+            {/* Keyed on the tab so switching away from a broken page clears
+                the error instead of showing it on the next one too. */}
+            <ErrorBoundary variant="page" key={tab}>
+              <Suspense fallback={<PageFallback/>}>
+                <Page/>
+              </Suspense>
+            </ErrorBoundary>
           </main>
         </div>
 
