@@ -42,8 +42,15 @@ EXPOSE 3001
 # Hits the real /health endpoint (which verifies DB connectivity, not just
 # "is the process alive") every 30s; 3 consecutive failures mark the
 # container unhealthy.
+#
+# Reads PORT at runtime rather than hardcoding 3001: hosts like Render assign
+# their own port via that env var, so a fixed port here would probe the wrong
+# socket and report a healthy server as permanently unhealthy.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "fetch('http://localhost:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://localhost:'+(process.env.PORT||3001)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 ENTRYPOINT ["dumb-init", "--"]
+# Default CMD for local `docker run` / docker-compose, where there's no
+# migration step to gate on. Render overrides this via its Docker Command
+# field — see server/scripts/start-prod.sh.
 CMD ["node", "index.js"]

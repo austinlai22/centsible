@@ -26,15 +26,25 @@ instead of destroying data.
 
 1. <https://render.com> → sign in with GitHub → **New → Web Service**
 2. Connect `austinlai22/centsible`
-3. Settings:
+3. Render detects `server/Dockerfile` and switches to Docker runtime — there's
+   no separate Build/Start Command field in this mode, so:
    - **Root Directory:** `server`
-   - **Build Command:** `npm install`
-   - **Start Command:** `npm run start:prod`
+   - **Dockerfile Path / Build Context:** auto-filled to `server/Dockerfile`
+     and `server/` once Root Directory is set — leave as-is
+   - **Build Command:** leave blank (the Dockerfile's own `RUN npm install`
+     layer is the build)
+   - **Docker Command** (under Advanced): `sh scripts/start-prod.sh`
    - **Instance Type:** Free
 
-`start:prod` runs the migration before booting. The migration is idempotent —
-safe on every deploy — which matters because Render's free tier has no
-reliable shell to run it from by hand.
+`scripts/start-prod.sh` runs the migration, then `exec`s into the server —
+the migration is idempotent, safe on every deploy. It's a script file rather
+than an inline `a && exec b` string because Render's Docker Command field
+passes a multi-word string to `sh` without a `-c` flag, so `sh` tries to run
+it as one literal program name and fails with exit 127. A single filename
+has nothing left for that to mis-parse.
+
+(Pre-Deploy Command would be the more idiomatic place for the migration step,
+but it's gated to paid instances — this gets the same effect on Free.)
 
 4. **Environment** — add these:
 
