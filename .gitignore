@@ -38,3 +38,6 @@ coverage/
 # ─── Credentials scratch files ───────────────────────────────────────────────────
 Budget App Credentials.rtf
 *credentials*.rtf
+
+# Locally generated production secrets — never commit
+DEPLOY-SECRETS.local.txt
