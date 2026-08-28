@@ -6,6 +6,7 @@ import { fmtDec } from "../lib/format.js";
 import { getLevelInfo } from "../lib/periods.js";
 import { Card, Field, Sheet, MenuRow, Spinner, ErrorBanner, SkeletonList } from "../components/ui.jsx";
 import { PrivacyModal } from "../components/PrivacyModal.jsx";
+import { TermsModal } from "../components/TermsModal.jsx";
 import { MfaSettings } from "../components/MfaSettings.jsx";
 import { TermsSettings, DisbursementsSettings } from "../components/CalendarSettings.jsx";
 import { RewardsContent } from "./Rewards.jsx";
@@ -138,6 +139,7 @@ export default function About({
         <Card style={{padding:"0 20px"}}>
           <SecLabel label="Privacy & Legal"/>
           <MenuRow icon="📄" label="Privacy Policy" sub="How we handle your data" onClick={open("privacy")}/>
+          <MenuRow icon="📜" label="Terms of Service" sub="What you're agreeing to" onClick={open("terms")}/>
           <MenuRow icon="🗑️" label="Delete my account" sub="Permanently erase all of your data" danger
             onClick={handleDeleteAccount}
             right={deleting?<Spinner size={14}/>:undefined} noBorder/>
@@ -244,6 +246,7 @@ export default function About({
       )}
 
       {section==="privacy"&&<PrivacyModal onClose={close}/>}
+      {section==="terms"&&<TermsModal onClose={close}/>}
     </>
   );
 }

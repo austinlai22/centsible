@@ -1,4 +1,5 @@
 import { Component } from "react";
+import * as Sentry from "@sentry/react";
 import { S } from "../styles.js";
 import { Brand } from "./Brand.jsx";
 
@@ -28,9 +29,11 @@ export class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    // Console is the only sink today. When error reporting is added, this is
-    // the single place it hooks into.
     console.error("[Centsible] render error:", error, info?.componentStack);
+    // No-op without VITE_SENTRY_DSN configured (see main.jsx) — the SDK
+    // never throws for being uninitialized, so this is safe to call
+    // unconditionally rather than checking the env var again here.
+    Sentry.captureException(error, { extra: { componentStack: info?.componentStack } });
     this.props.onError?.(error, info);
   }
 

@@ -32,6 +32,11 @@ if grep -q "privacy@centsible.app" centsible-privacy-policy.md 2>/dev/null; then
   note "policy lists privacy@centsible.app — make sure that mailbox exists and is monitored"
 fi
 
+TOS_PLACEHOLDERS=$(grep -oE '\[[A-Z][^]]*\][^(]' centsible-terms-of-service.md 2>/dev/null | sed 's/.$//' | sort -u | tr '\n' ' ')
+if [ -n "$TOS_PLACEHOLDERS" ]; then
+  bad "terms of service still has unfilled placeholders" "$TOS_PLACEHOLDERS"
+elif [ -f centsible-terms-of-service.md ]; then ok "terms of service has no placeholders"; fi
+
 echo
 echo "── frontend build config ────────────────────────────────────────────────"
 if grep -q "__API_ORIGIN__" frontend/index.html 2>/dev/null; then

@@ -130,6 +130,28 @@ Then delete `DEPLOY-SECRETS.local.txt`.
 
 ---
 
+## 6 · Error reporting — Sentry (optional, free)
+
+Wired into the code already (server's `instrument.js`, frontend's
+`ErrorBoundary`) — this just turns it on. Free tier: 5,000 events/month,
+unlimited projects, one dashboard user.
+
+1. <https://sentry.io> → sign up → create an org
+2. Create **two** projects — one Node, one React (e.g.
+   `centsible-api` and `centsible-web`). Separate projects so a frontend
+   error storm doesn't eat the backend's share of the shared 5k/month quota,
+   or the reverse.
+3. Each project's **Settings → Client Keys (DSN)** has a URL like
+   `https://xxxx@xxxx.ingest.sentry.io/xxxx`
+4. Render → Environment → add `SENTRY_DSN` = the Node project's DSN
+5. Vercel → Environment Variables → add `VITE_SENTRY_DSN` = the React
+   project's DSN, then trigger a redeploy (it's inlined at build time, so
+   setting it alone doesn't reach an already-built bundle)
+
+Skip this entirely and nothing changes — both are no-ops with no DSN set.
+
+---
+
 ## What to expect
 
 **Cold starts.** Render's free tier sleeps after ~15 minutes idle. The first
@@ -147,11 +169,16 @@ run on your laptop.
 
 ## Still outstanding
 
-- **Privacy policy placeholders** — `[Company Legal Name]`, `[State]`,
-  `[Address]`, and the provider table. Fine while it's you and a few testers;
-  not fine once strangers sign up.
-- **No terms of service.**
-- **No error reporting** — the error boundary logs to a console nobody reads.
-  Sentry's free tier plugs into the existing `componentDidCatch` hook.
+- **Sandbox-only Plaid.** Production access is Plaid's own review process,
+  not a config change — apply whenever you're ready for real banks.
+- **No domain/trademark check done** for "Centsible" — worth a quick search
+  (`.com`/`.app` availability, USPTO) before treating the name as permanent.
+  You're also on a free `usecentsible.vercel.app` subdomain for now.
+- **Personal liability.** Not incorporated yet — see the note at the end of
+  `centsible-terms-of-service.md` for when that stops being fine to defer.
+- **No self-service data export** — the Privacy Policy is honest about this:
+  it's a manual, by-email process today, not an in-app button.
 
-`bash scripts/preflight.sh` re-checks all of this.
+`bash scripts/preflight.sh` re-checks the deploy-readiness parts of this
+(secrets, CSP, dependency vulnerabilities) — it doesn't know about the legal
+or business items above.

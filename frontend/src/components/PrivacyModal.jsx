@@ -29,7 +29,7 @@ export function PrivacyModal({onClose,showAccept=false,onAccept}){
         <div style={{padding:"22px 22px 14px",borderBottom:"1px solid var(--line)",...S.between,gap:12,flexShrink:0}}>
           <div>
             <p style={{...S.display,fontSize:20,fontWeight:400}}>Privacy Policy</p>
-            <p style={{fontSize:12,color:"var(--muted)",marginTop:2}}>Effective May 20, 2025</p>
+            <p style={{fontSize:12,color:"var(--muted)",marginTop:2}}>Effective August 28, 2026</p>
           </div>
           {!showAccept&&<button style={S.quietBtn({flexShrink:0})} onClick={onClose}>Close</button>}
         </div>

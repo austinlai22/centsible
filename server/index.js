@@ -12,7 +12,11 @@
  * The frontend never receives or stores Plaid access tokens.
  */
 
+// Must be the very first import — see instrument.js for why.
+import "./instrument.js";
+
 import "dotenv/config";
+import * as Sentry from "@sentry/node";
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
@@ -201,6 +205,13 @@ app.get("/health", async (_req, res) => {
 
 // ─── 404 handler ─────────────────────────────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
+
+// ─── Sentry error capture ─────────────────────────────────────────────────────
+// Must sit after every route (so it sees errors from all of them) and before
+// the final error handler below (it re-throws via next(err), so our own
+// handler still runs afterward and still owns the actual response). A no-op
+// when SENTRY_DSN is unset — see instrument.js.
+Sentry.setupExpressErrorHandler(app);
 
 // ─── Global error handler ────────────────────────────────────────────────────
 // Never leaks stack traces or internal details to the client.

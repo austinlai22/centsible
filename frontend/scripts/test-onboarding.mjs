@@ -25,6 +25,7 @@ await page.getByRole("button", { name: /sign up/i }).click();
 await page.waitForTimeout(200);
 await page.getByPlaceholder("you@example.com").fill(email);
 await page.getByPlaceholder("At least 8 characters").fill("testpassword123");
+await page.locator("#confirm-password").fill("testpassword123");
 await page.getByRole("button", { name: /create account/i }).click();
 await page.waitForTimeout(1500);
 
@@ -49,6 +50,14 @@ await cont().click(); await page.waitForTimeout(500);
 const stillAsking = await page.getByText(/where are you in your studies|when does your aid arrive|how would you describe your spending/i)
   .isVisible().catch(() => false);
 ck("signup does NOT block on student type, aid, or spending style", !stillAsking);
+
+// 2FA step — skipped here; the enrol path itself gets full coverage below
+// with a second account, since a click-through skip proves nothing about
+// whether "Set up two-factor" actually works.
+ck("offers 2FA setup with a skip option",
+   await page.getByRole("button", { name: /set up later/i }).isVisible().catch(() => false));
+await page.getByRole("button", { name: /set up later/i }).click();
+await page.waitForTimeout(400);
 
 // privacy gate
 const rp = page.getByRole("button", { name: /read our privacy policy/i });
@@ -102,6 +111,66 @@ ck("disbursement saved with the entered amount",
    state.disb.disbursements?.[0]?.amount === 8400, JSON.stringify(state.disb.disbursements));
 
 await page.screenshot({ path: "/tmp/onboarded-summary.png" });
+
+// ── A second account, purely to prove "Set up two-factor" itself works ──
+// The skip path above proves nothing about the enrol path — this drives it
+// for real: scan (read the secret instead), compute an actual TOTP code
+// with the same algorithm the server verifies against, confirm, and check
+// the server actually turned MFA on, not just that the UI moved forward.
+const { generate: totpGenerate } = await import("../../server/lib/totp.js");
+
+const page2 = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+const email2 = `onb2fa${Date.now()}@test.local`;
+
+await page2.goto(APP, { waitUntil: "networkidle" });
+await page2.getByRole("button", { name: /sign up/i }).click();
+await page2.waitForTimeout(200);
+await page2.getByPlaceholder("you@example.com").fill(email2);
+await page2.getByPlaceholder("At least 8 characters").fill("testpassword123");
+await page2.locator("#confirm-password").fill("testpassword123");
+await page2.getByRole("button", { name: /create account/i }).click();
+await page2.waitForTimeout(1500);
+
+await page2.locator("input").first().fill("Austin");
+await page2.getByRole("button", { name: /continue|skip for now/i }).click();
+await page2.waitForTimeout(400);
+await page2.locator("#ob-start").fill("2026-08-24");
+await page2.waitForTimeout(300);
+await page2.getByRole("button", { name: /continue|skip for now/i }).click();
+await page2.waitForTimeout(400);
+
+await page2.getByRole("button", { name: /set up two-factor/i }).click();
+await page2.waitForTimeout(600);
+ck("2FA enrol step shows a QR code", await page2.locator('img[alt*="QR code"]').isVisible().catch(() => false));
+
+await page2.getByRole("button", { name: /can't scan/i }).click();
+await page2.waitForTimeout(200);
+// Base32 (RFC 4648, A-Z2-7) — the one string on this step matching that
+// shape is the revealed secret, regardless of which element wraps it.
+const secret = (await page2.getByText(/^[A-Z2-7]{16,}$/).first().textContent())?.trim();
+ck("a setup secret is revealed as an alternative to scanning", !!secret && secret.length >= 16, `got "${secret}"`);
+
+const code = totpGenerate(secret);
+await page2.locator("#ob-mfa-token").fill(code);
+await page2.getByRole("button", { name: /^turn on$/i }).click();
+await page2.waitForTimeout(800);
+
+ck("a real TOTP code is accepted and recovery codes are shown",
+   await page2.getByText(/save your recovery codes/i).isVisible().catch(() => false));
+const codeCount = await page2.locator("code").count();
+ck("more than one recovery code is shown", codeCount > 1, `saw ${codeCount}`);
+
+await page2.getByRole("button", { name: /saved them/i }).click();
+await page2.waitForTimeout(400);
+ck("advances to the privacy step after enrolling",
+   await page2.getByRole("button", { name: /read our privacy policy/i }).isVisible().catch(() => false));
+
+// Server-side truth, not just what the UI shows.
+const mfaStatus = await page2.evaluate(async (api) =>
+  (await fetch(api + "/auth/mfa", { credentials: "include" })).json(), API);
+ck("the server actually has 2FA enabled for this account, not just the UI",
+   mfaStatus?.enabled === true, JSON.stringify(mfaStatus));
+
 await browser.close();
 console.log(`\n  PASSED: ${pass}   FAILED: ${fail}`);
 process.exit(fail ? 1 : 0);

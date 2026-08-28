@@ -14,9 +14,10 @@
     "test:mfa": "bash scripts/test-mfa.sh",
     "test:api": "bash scripts/test-api.sh",
     "test:calendar": "bash scripts/test-calendar.sh",
-    "start:prod": "node db/migrate.js && node index.js"
+    "start:prod": "node db/migrate.js && node --import ./instrument.js index.js"
   },
   "dependencies": {
+    "@sentry/node": "^10.72.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",

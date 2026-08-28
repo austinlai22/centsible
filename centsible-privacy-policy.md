@@ -1,6 +1,6 @@
 # Centsible Privacy Policy
 
-**Effective date:** May 20, 2025  
+**Effective date:** August 28, 2026  
 **Plain-language summary at the top — full details below.**
 
 ---
@@ -17,10 +17,11 @@
 
 ## 1. Who we are
 
-Centsible is a personal finance app built to help you understand and improve your relationship with money. We are [Company Legal Name], incorporated in [State], United States ("Centsible," "we," "us," or "our").
+Centsible is a personal finance app built to help you understand and improve your relationship with money. It is currently operated by **Austin Lai**, an individual based in California, United States, as an independent, unincorporated project — not yet a registered company ("Centsible," "we," "us," or "our"). If that changes, this section will be updated to name the entity, and you'll be notified per §9.
 
-Questions about this policy: **privacy@centsible.app**  
-Mailing address: [Address]
+Questions about this policy: **contact@example.com**
+
+A physical mailing address isn't required for this policy under California law (CalOPPA) — email is the fastest way to reach us and the one we actually check.
 
 ---
 
@@ -63,7 +64,6 @@ If you choose to connect a financial account, we work with **Plaid Inc.** (or a 
 |------|-----|
 | App version, device OS type | To fix bugs and ensure compatibility |
 | Crash logs and error reports | To identify and resolve technical problems |
-| Feature usage (which screens you visit, how often) | To understand what's working and what isn't, in aggregate |
 
 We do **not** collect your precise location, contacts, camera, or microphone. We will always ask before accessing any device sensor, and you can say no.
 
@@ -104,10 +104,11 @@ We share the minimum necessary with a small number of service providers who help
 
 | Provider | Purpose | Data shared |
 |----------|---------|-------------|
-| Plaid (or equivalent) | Bank account connection | Credentials handled by Plaid directly; we receive transaction data only |
-| [Cloud hosting provider, e.g. AWS] | Secure data storage and infrastructure | Encrypted user data |
-| [Crash reporting, e.g. Sentry] | Error tracking | Anonymized crash logs |
-| [Analytics, e.g. PostHog self-hosted] | Aggregate feature usage | Anonymized event data |
+| Plaid | Bank account connection | Credentials handled by Plaid directly; we receive transaction data only |
+| Neon | Database hosting | Encrypted user data |
+| Render | API hosting | Encrypted user data, in transit only — not stored by Render itself |
+| Vercel | Hosts the app you're using | Standard web request metadata (e.g. IP address) inherent to serving any page |
+| Sentry | Error tracking | Crash reports and stack traces — never your financial data, which lives in separate storage Sentry has no access to |
 
 **We do not share your data with:**
 - Advertisers or ad networks
@@ -123,19 +124,17 @@ We may disclose information if required by law (e.g. a valid court order), but w
 
 You are in control of your data. Here is what you can do, and how:
 
-**Access:** Request a full export of everything we have about you. Go to **Settings → Privacy → Export my data**, or email privacy@centsible.app. We'll send a structured file (JSON or CSV) within 7 days.
+**Access:** Request a full export of everything we have about you by emailing contact@example.com. We'll send a structured file (JSON or CSV) within 7 days. (There's no self-service export button in the app yet — for now this is a manual request, answered by a person.)
 
 **Correction:** If any of your data is inaccurate, you can edit it directly in the app, or contact us to do it for you.
 
-**Deletion:** You can delete your account and all associated data at any time. Go to **Settings → Privacy → Delete my account**. We will permanently delete your data within 30 days, except where we are required by law to retain certain records (e.g. billing records for up to 7 years, per U.S. tax law — we will tell you exactly what is retained and why).
+**Deletion:** You can delete your account and all associated data at any time from **About → Delete my account**. We will permanently delete your data within 30 days, except where we are required by law to retain certain records (e.g. billing records for up to 7 years, per U.S. tax law — we will tell you exactly what is retained and why).
 
-**Opt out of analytics:** Go to **Settings → Privacy → Usage analytics** and toggle it off. This does not affect app functionality.
+**Disconnect bank accounts:** Go to **About → Connected banks** at any time.
 
-**Disconnect bank accounts:** Go to **Settings → Connected Accounts** at any time.
+**California residents:** CCPA's own legal thresholds (roughly $26.6M in annual revenue, or personal information from 100,000+ CA consumers or households) don't currently apply to us — we're a small, individually-run project. We choose to offer the same core rights anyway — to know what we collect, to delete it, to opt out of any sale (we don't sell it, to anyone, ever), and to non-discrimination for exercising these rights — because we think they're the right baseline regardless of what the law requires of us at this size.
 
-**California residents (CCPA):** You have the right to know what personal information we collect, to delete it, to opt out of its sale (we don't sell it, but you have the right regardless), and to non-discrimination for exercising these rights.
-
-**Other U.S. state residents:** We extend the same rights to all users regardless of state law, because we think they're the right baseline.
+**Other U.S. state residents:** We extend the same rights to all users regardless of state law.
 
 ---
 
@@ -168,7 +167,7 @@ No system is perfectly secure. If we ever experience a breach affecting your dat
 
 ## 8. Children's privacy
 
-Centsible is not directed at children under 13. We do not knowingly collect personal information from anyone under 13. If you believe a child has provided us with their information, please contact us at privacy@centsible.app and we will delete it promptly.
+Centsible is not directed at children under 13. We do not knowingly collect personal information from anyone under 13. If you believe a child has provided us with their information, please contact us at contact@example.com and we will delete it promptly.
 
 ---
 
@@ -190,9 +189,8 @@ Minor changes (fixing typos, clarifying language without changing meaning) will 
 
 If you have questions, concerns, or requests about your privacy:
 
-**Email:** privacy@centsible.app  
-**Response time:** We aim to respond within 2 business days.  
-**Mailing address:** [Company Name], [Address]
+**Email:** contact@example.com  
+**Response time:** We aim to respond within 2 business days.
 
 If you feel we haven't adequately addressed a concern, you may have the right to lodge a complaint with your state's attorney general office or a relevant consumer protection authority.
 
@@ -202,5 +200,6 @@ If you feel we haven't adequately addressed a concern, you may have the right to
 
 | Date | Change |
 |------|--------|
+| August 28, 2026 | Named the actual operator (an individual, not an incorporated company) in place of placeholder text; dropped the mailing-address requirement (not legally required — see §1); corrected §2c, §4, and §5 to describe only features that actually exist in the app today (no analytics collection, no self-service export button yet); filled in the real service providers in §4 |
 | May 20, 2025 | Initial policy published |
 

@@ -217,7 +217,7 @@ export function AuthScreen({onAuth}){
         </p>
         )}
         <p style={{textAlign:"center",marginTop:16,fontSize:11,color:"rgba(200,186,168,.5)",lineHeight:1.5}}>
-          By continuing you agree to our Privacy Policy.<br/>We never sell your data.
+          By continuing you agree to our Terms of Service and Privacy Policy.<br/>We never sell your data.
         </p>
       </div>
     </div>
