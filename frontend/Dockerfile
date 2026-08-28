@@ -1,4 +1,4 @@
-# ─── flo·w frontend — production Dockerfile ───────────────────────────────────
+# ─── Centsible frontend — production Dockerfile ───────────────────────────────────
 #
 # Stage 1 builds the static assets with Vite.
 # Stage 2 serves them with nginx — a Node process has no business serving

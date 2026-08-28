@@ -1,4 +1,4 @@
-# ─── flo·w backend — production Dockerfile ────────────────────────────────────
+# ─── Centsible backend — production Dockerfile ────────────────────────────────────
 #
 # Multi-stage build:
 #   1. "deps"  installs only production dependencies into a clean layer
