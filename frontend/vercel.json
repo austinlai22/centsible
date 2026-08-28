@@ -1,33 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
 
-  "//": [
-    "Proxies the API through the same origin that serves the app.",
-    "",
-    "Without this, the browser sees app.vercel.app calling api.onrender.com —",
-    "a cross-SITE request, so the session cookies are third-party. Safari blocks",
-    "those by default and Chrome is phasing them out, which means login would",
-    "appear to work and then every subsequent request would arrive with no",
-    "cookie. Setting SameSite=None does not help: it is precisely the flag",
-    "those browsers are refusing to honour cross-site.",
-    "",
-    "Rewriting server-side makes the request first-party from the browser's",
-    "point of view, so cookies can stay SameSite=Lax and behave normally with",
-    "no third-party-cookie exposure at all. It also removes the CORS preflight",
-    "from every mutation.",
-    "",
-    "Set API_UPSTREAM in Vercel's project settings to the backend's public URL,",
-    "and set VITE_API_URL to /api-proxy so the app calls the proxy rather than",
-    "the backend directly."
-  ],
-
   "rewrites": [
     { "source": "/api-proxy/:path*", "destination": "https://centsible-zsio.onrender.com/:path*" }
   ],
 
   "headers": [
     {
-      "//": "Belt-and-braces headers that a <meta> CSP cannot set.",
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
@@ -38,12 +17,10 @@
       ]
     },
     {
-      "//": "Vite fingerprints these filenames, so a new deploy always produces new names.",
       "source": "/assets/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     },
     {
-      "//": "index.html must never be cached, or a returning user gets a stale bundle reference.",
       "source": "/index.html",
       "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
     }
