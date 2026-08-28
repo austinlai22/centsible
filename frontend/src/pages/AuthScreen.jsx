@@ -88,6 +88,7 @@ export function AuthScreen({onAuth}){
   const [mode,setMode]     = useState("login");
   const [email,setEmail]   = useState("");
   const [password,setPass] = useState("");
+  const [confirmPassword,setConfirmPass] = useState("");
   const [name,setName]     = useState("");
   const [error,setError]   = useState("");
   const [loading,setLoading] = useState(false);
@@ -103,11 +104,20 @@ export function AuthScreen({onAuth}){
     return {label:"Strong",color:"var(--success)",w:"100%"};
   })();
 
+  // Only blocks submit once the user has actually typed a confirmation — an
+  // empty confirm field shouldn't disable the button before they've had a
+  // chance to fill it in.
+  const passwordsMismatch = mode==="register" && confirmPassword.length>0 && password!==confirmPassword;
+
   const submit = async (e) => {
     e?.preventDefault();
     setError("");
     if(!email.trim()||!password.trim()) return setError("Please fill in all fields.");
     if(mode==="register"&&password.length<8) return setError("Password must be at least 8 characters.");
+    // Checked client-side, not just left to the confirm field's own styling:
+    // a mismatch here is what "typo'd your own new password" looks like, and
+    // the alternative is finding out at the NEXT login instead of right now.
+    if(mode==="register"&&password!==confirmPassword) return setError("Passwords don't match.");
     setLoading(true);
     try {
       const res = mode==="login"
@@ -128,7 +138,7 @@ export function AuthScreen({onAuth}){
 
   // IS is module-scoped above. fontSize 16 there is load-bearing: iOS Safari
   // auto-zooms the viewport when a focused input is smaller than 16px.
-  const toggle=()=>{setMode(m=>m==="login"?"register":"login");setError("");};
+  const toggle=()=>{setMode(m=>m==="login"?"register":"login");setError("");setConfirmPass("");};
 
   return(
     <div style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--hero)",padding:24}}>
@@ -175,13 +185,23 @@ export function AuthScreen({onAuth}){
                 </div>
               )}
             </div>
+            {mode==="register"&&(
+              <div>
+                <label htmlFor="confirm-password" style={{...S.label,color:"var(--hero-muted)"}}>Confirm password</label>
+                <input id="confirm-password" value={confirmPassword} onChange={e=>setConfirmPass(e.target.value)}
+                  placeholder="••••••••" type="password" autoComplete="new-password" style={IS}/>
+                {confirmPassword.length>0&&confirmPassword!==password&&(
+                  <p style={{fontSize:12,color:"var(--danger-on-hero)",marginTop:6}}>Passwords don't match yet.</p>
+                )}
+              </div>
+            )}
             {error&&(
               <div role="alert" style={{background:"var(--danger-bg)",border:"1px solid var(--danger-line)",borderRadius:10,padding:"10px 14px"}}>
                 <p style={{fontSize:13,color:"var(--danger)"}}>⚠️ {error}</p>
               </div>
             )}
-            <button type="submit" disabled={loading}
-              style={{...S.darkBtn(),background:loading?"rgba(255,255,255,.15)":"var(--hero-accent)",color:loading?"var(--hero-muted)":"var(--hero)",borderRadius:12,marginTop:4,transition:"all .2s",cursor:loading?"default":"pointer",minHeight:46}}>
+            <button type="submit" disabled={loading||passwordsMismatch}
+              style={{...S.darkBtn(),background:loading||passwordsMismatch?"rgba(255,255,255,.15)":"var(--hero-accent)",color:loading||passwordsMismatch?"var(--hero-muted)":"var(--hero)",borderRadius:12,marginTop:4,transition:"all .2s",cursor:loading||passwordsMismatch?"default":"pointer",minHeight:46}}>
               {loading?<Spinner size={16}/>:mode==="login"?"Log in →":"Create account →"}
             </button>
           </div>

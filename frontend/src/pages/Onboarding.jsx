@@ -7,6 +7,7 @@ import {
 } from "../lib/calendar.js";
 import { PrivacyModal } from "../components/PrivacyModal.jsx";
 import { Brand } from "../components/Brand.jsx";
+import { mfaApi } from "../api.js";
 
 export function Onboarding({onComplete}){
   const [step,setStep]       = useState(0);
@@ -15,12 +16,26 @@ export function Onboarding({onComplete}){
   const [showPrivacy,setShowPrivacy] = useState(false);
   const inputRef = useRef(null);
 
-  const totalSteps    = ONBOARDING_STEPS.length+1;
-  const isPrivacyStep = step===ONBOARDING_STEPS.length;
-  const cur           = !isPrivacyStep?ONBOARDING_STEPS[step]:null;
+  // 2FA enrolment, inline rather than the Settings-page MfaSettings component:
+  // this needs a "skip for now" exit that turning security off later doesn't,
+  // and it runs immediately after registration while the session cookie from
+  // that request is already live, so the enrol/confirm calls need nothing
+  // Onboarding doesn't already have.
+  const [mfaPhase,setMfaPhase] = useState("offer"); // offer | enrol | codes
+  const [mfaEnrol,setMfaEnrol] = useState(null);    // { secret, uri, qr }
+  const [mfaToken,setMfaToken] = useState("");
+  const [mfaCodes,setMfaCodes] = useState(null);
+  const [mfaBusy,setMfaBusy]   = useState(false);
+  const [mfaError,setMfaError] = useState("");
+  const [showMfaSecret,setShowMfaSecret] = useState(false);
+
+  const totalSteps    = ONBOARDING_STEPS.length+2;
+  const isMfaStep      = step===ONBOARDING_STEPS.length;
+  const isPrivacyStep = step===ONBOARDING_STEPS.length+1;
+  const cur           = (!isMfaStep && !isPrivacyStep) ? ONBOARDING_STEPS[step] : null;
 
   useEffect(()=>{
-    if(isPrivacyStep) return;
+    if(isMfaStep||isPrivacyStep) return;
     const stepDef = ONBOARDING_STEPS[step];
     const prior = answers[stepDef.id];
     if (prior !== undefined) { setVal(prior); }
@@ -68,6 +83,26 @@ export function Onboarding({onComplete}){
   // Answers are kept in state, so stepping back and forward preserves them.
   const back=()=>setStep(s=>Math.max(0,s-1));
 
+  const goToPrivacy = () => setStep(s=>s+1);
+
+  const beginMfa = async () => {
+    setMfaBusy(true); setMfaError("");
+    try { setMfaEnrol(await mfaApi.startTotp()); setMfaPhase("enrol"); }
+    catch (e) { setMfaError(e.message || "Couldn't start setup — please try again."); }
+    finally { setMfaBusy(false); }
+  };
+
+  const confirmMfa = async () => {
+    setMfaBusy(true); setMfaError("");
+    try {
+      const res = await mfaApi.confirmTotp(mfaToken.replace(/\s/g,""));
+      setMfaCodes(res.recoveryCodes);
+      setMfaPhase("codes");
+      setMfaToken("");
+    } catch (e) { setMfaError(e.message || "That code didn't match — please try again."); }
+    finally { setMfaBusy(false); }
+  };
+
   const IS={width:"100%",background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.15)",borderRadius:12,padding:"14px 18px",color:"var(--hero-ink)",fontSize:17,outline:"none"};
 
   return(
@@ -82,7 +117,7 @@ export function Onboarding({onComplete}){
             <div style={{height:"100%",width:(step/totalSteps*100)+"%",background:"var(--hero-accent)",borderRadius:2,transition:"width .5s ease"}}/>
           </div>
 
-          {!isPrivacyStep?(
+          {cur?(
             <div key={step} className="slide-up" style={{background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.09)",borderRadius:20,padding:"38px 34px"}}>
               <p style={{color:"var(--hero-muted)",fontSize:12,marginBottom:10,textTransform:"uppercase",letterSpacing:"1.2px"}}>{step+1} of {totalSteps}</p>
               <h2 style={{...S.display,color:"var(--hero-ink)",fontSize:25,fontWeight:400,marginBottom:cur.hint?10:28,lineHeight:1.35}}>{cur.q}</h2>
@@ -199,6 +234,98 @@ export function Onboarding({onComplete}){
                   {cur.optional && (isRange ? !rangeOk : !String(val ?? "").trim()) ? "Skip for now →" : "Continue →"}
                 </button>
               </div>
+            </div>
+          ):isMfaStep?(
+            <div key="mfa-step" className="slide-up" style={{background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.09)",borderRadius:20,padding:"38px 34px"}}>
+              <p style={{color:"var(--hero-muted)",fontSize:12,marginBottom:10,textTransform:"uppercase",letterSpacing:"1.2px"}}>{ONBOARDING_STEPS.length+1} of {totalSteps}</p>
+
+              {mfaPhase==="offer"&&(
+                <>
+                  <h2 style={{...S.display,color:"var(--hero-ink)",fontSize:25,fontWeight:400,marginBottom:12,lineHeight:1.35}}>Add a second layer of security</h2>
+                  <p style={{color:"var(--hero-muted)",fontSize:14,lineHeight:1.65,marginBottom:28}}>
+                    With two-factor on, knowing your password isn't enough to reach your finances — sign-in also needs a code from an authenticator app on your phone. Takes about a minute, and you can turn it on any time later in Settings if you'd rather skip it now.
+                  </p>
+                  {mfaError&&(
+                    <p role="alert" style={{fontSize:13,color:"var(--danger-on-hero)",marginBottom:14}}>{mfaError}</p>
+                  )}
+                  <button type="button" onClick={beginMfa} disabled={mfaBusy}
+                    style={{...S.darkBtn(),background:mfaBusy?"rgba(255,255,255,.15)":"var(--hero-accent)",color:mfaBusy?"var(--hero-muted)":"var(--hero)",borderRadius:12,minHeight:46,opacity:mfaBusy?.7:1}}>
+                    {mfaBusy?"Starting…":"Set up two-factor →"}
+                  </button>
+                  <div style={{...S.row,gap:10,marginTop:12}}>
+                    <button type="button" onClick={back}
+                      style={{...S.darkBtn(),width:"auto",flexShrink:0,background:"rgba(255,255,255,.08)",color:"var(--hero-muted)",borderRadius:12,padding:"13px 18px"}}>
+                      ← Back
+                    </button>
+                    <button type="button" onClick={goToPrivacy}
+                      style={{...S.darkBtn(),background:"transparent",color:"var(--hero-muted)",borderRadius:12,textDecoration:"underline"}}>
+                      Set up later
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {mfaPhase==="enrol"&&mfaEnrol&&(
+                <>
+                  <h2 style={{...S.display,color:"var(--hero-ink)",fontSize:22,fontWeight:400,marginBottom:8,lineHeight:1.35}}>Scan with your authenticator app</h2>
+                  <p style={{color:"var(--hero-muted)",fontSize:13,lineHeight:1.6,marginBottom:18}}>
+                    Google Authenticator, 1Password, Authy, or any TOTP app — then enter the 6-digit code it shows.
+                  </p>
+                  <div style={{textAlign:"center",marginBottom:16}}>
+                    <img src={mfaEnrol.qr} alt="QR code for two-factor setup" width={180} height={180}
+                         style={{borderRadius:12,background:"#fff",maxWidth:"100%",height:"auto"}}/>
+                  </div>
+                  <button type="button" onClick={()=>setShowMfaSecret(v=>!v)}
+                    style={{background:"none",border:"none",color:"var(--hero-accent)",fontSize:12,cursor:"pointer",padding:0,marginBottom:12}}>
+                    {showMfaSecret?"Hide setup key":"Can't scan? Enter a key instead"}
+                  </button>
+                  {showMfaSecret&&(
+                    <p style={{fontFamily:"ui-monospace,SFMono-Regular,Menlo,monospace",fontSize:13,wordBreak:"break-all",
+                               background:"rgba(255,255,255,.07)",borderRadius:8,padding:"10px 12px",marginBottom:14,color:"var(--hero-ink)",userSelect:"all"}}>
+                      {mfaEnrol.secret}
+                    </p>
+                  )}
+                  <label htmlFor="ob-mfa-token" style={{...S.label,color:"var(--hero-muted)"}}>6-digit code</label>
+                  <input id="ob-mfa-token" value={mfaToken} autoFocus autoComplete="one-time-code" inputMode="numeric"
+                    onChange={e=>setMfaToken(e.target.value.replace(/[^0-9]/g,"").slice(0,6))}
+                    onKeyDown={e=>e.key==="Enter"&&mfaToken.length===6&&confirmMfa()}
+                    placeholder="123456"
+                    style={{...IS,textAlign:"center",letterSpacing:"0.4em",fontSize:20,marginBottom:14}}/>
+                  {mfaError&&(
+                    <p role="alert" style={{fontSize:13,color:"var(--danger-on-hero)",marginBottom:14}}>{mfaError}</p>
+                  )}
+                  <div style={{...S.row,gap:10}}>
+                    <button type="button" onClick={()=>{setMfaPhase("offer");setMfaEnrol(null);setMfaToken("");setMfaError("");}}
+                      style={{...S.darkBtn(),background:"rgba(255,255,255,.08)",color:"var(--hero-muted)",borderRadius:12}}>
+                      Cancel
+                    </button>
+                    <button type="button" onClick={confirmMfa} disabled={mfaBusy||mfaToken.length!==6}
+                      style={{...S.darkBtn(),background:mfaBusy||mfaToken.length!==6?"rgba(255,255,255,.08)":"var(--hero-accent)",color:mfaBusy||mfaToken.length!==6?"var(--hero-muted)":"var(--hero)",borderRadius:12}}>
+                      {mfaBusy?"Verifying…":"Turn on"}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {mfaPhase==="codes"&&mfaCodes&&(
+                <>
+                  <h2 style={{...S.display,color:"var(--hero-ink)",fontSize:22,fontWeight:400,marginBottom:8,lineHeight:1.35}}>Save your recovery codes</h2>
+                  <div style={{background:"rgba(255,180,0,.1)",border:"1px solid rgba(255,180,0,.3)",borderRadius:12,padding:"12px 14px",marginBottom:16}}>
+                    <p style={{fontSize:13,color:"var(--hero-ink)",lineHeight:1.55}}>
+                      Shown once. Each code works a single time, and they're the only way back in if you lose your phone.
+                    </p>
+                  </div>
+                  <div style={{background:"rgba(255,255,255,.07)",borderRadius:12,padding:"16px",display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:"8px 16px",marginBottom:18}}>
+                    {mfaCodes.map(c=>(
+                      <code key={c} style={{fontFamily:"ui-monospace,SFMono-Regular,Menlo,monospace",fontSize:14,letterSpacing:".05em",color:"var(--hero-ink)",userSelect:"all"}}>{c}</code>
+                    ))}
+                  </div>
+                  <button type="button" onClick={goToPrivacy}
+                    style={{...S.darkBtn(),background:"var(--hero-accent)",color:"var(--hero)",borderRadius:12,minHeight:46}}>
+                    I've saved them →
+                  </button>
+                </>
+              )}
             </div>
           ):(
             <div key="privacy-step" className="slide-up" style={{background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.09)",borderRadius:20,padding:"38px 34px"}}>
