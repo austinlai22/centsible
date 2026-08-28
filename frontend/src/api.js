@@ -37,14 +37,27 @@ let isRefreshing = false;          // prevent concurrent refresh loops
 let refreshQueue = [];             // requests waiting on a refresh
 
 async function coreFetch(path, options = {}, isRetry = false) {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     credentials: "include",        // always send cookies
     headers: {
       "Content-Type": "application/json",
       ...options.headers,
-    },
-  });
+      },
+    });
+  } catch (networkErr) {
+    // fetch() rejects for genuine network failures AND for CORS refusals —
+    // the browser deliberately hides which, so this is as specific as the app
+    // can honestly be. Saying "couldn't reach the server" at least points at
+    // the right layer; the previous "Something went wrong" sent people looking
+    // at their password.
+    throw new ApiError(
+      "Couldn't reach the server. Check your connection — or, if you're running this yourself, that the API is running and CLIENT_ORIGIN matches this site's address.",
+      0
+    );
+  }
 
   // ── Silent token refresh on 401 ──────────────────────────────────────────
   if (res.status === 401 && !isRetry) {

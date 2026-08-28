@@ -12,7 +12,8 @@
     "test:runway": "node scripts/test-runway.mjs",
     "test:onboarding": "node scripts/test-onboarding.mjs",
     "preflight": "bash ../scripts/preflight.sh",
-    "test:audit": "node scripts/test-audit.mjs"
+    "test:audit": "node scripts/test-audit.mjs",
+    "test:prod": "node scripts/test-prod-build.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

@@ -60,8 +60,23 @@ app.use(helmet());
 
 // ─── 2. CORS — restrict to known frontend origin ──────────────────────────────
 // Credentials: true is required for HttpOnly cookies to be sent cross-origin.
+// CLIENT_ORIGIN accepts a comma-separated list so a preview build, a staging
+// deploy, and production can coexist without redeploying the API. An origin
+// that is not on the list fails as a CORS preflight rejection, which the
+// browser deliberately hides from JavaScript — the app sees only a generic
+// network failure, so a one-character mismatch here presents as "something
+// went wrong" with nothing in the logs. Worth getting exactly right.
+const ALLOWED_ORIGINS = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
+  .split(",").map(o => o.trim()).filter(Boolean);
+
 app.use(cors({
-  origin:      process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  origin: (origin, cb) => {
+    // No Origin header: same-origin, curl, or a server-to-server call.
+    if (!origin) return cb(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    console.warn(`[cors] refused origin ${origin} — allowed: ${ALLOWED_ORIGINS.join(", ")}`);
+    return cb(null, false);
+  },
   credentials: true,
   methods:     ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
