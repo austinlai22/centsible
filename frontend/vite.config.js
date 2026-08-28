@@ -20,6 +20,17 @@ function cspApiOrigin(env) {
     name: "csp-api-origin",
     transformIndexHtml(html) {
       const apiUrl = env.VITE_API_URL || "http://localhost:3001";
+
+      // A same-origin proxy path (e.g. "/api-proxy", per vercel.json's
+      // rewrite) has no origin of its own to add — it's already covered by
+      // the CSP's 'self' token. This is the $0-hosting shape, where the
+      // browser never sees the real API host at all. `new URL()` throws on
+      // a bare path like this since there's no base to resolve it against,
+      // so it has to be handled before that call rather than in the catch.
+      if (apiUrl.startsWith("/")) {
+        return html.replaceAll(" __API_ORIGIN__", "");
+      }
+
       let origin;
       try {
         origin = new URL(apiUrl).origin;
