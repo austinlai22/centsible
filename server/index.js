@@ -203,6 +203,15 @@ app.get("/health", async (_req, res) => {
   }
 });
 
+// ─── TEMPORARY: verifying Sentry actually receives events post-deploy ────────
+// Gated by a query token rather than left as a bare open "crash the server"
+// route, even for the few minutes this exists. Delete this block once the
+// event is confirmed in the Sentry dashboard — see commit message.
+app.get("/debug/sentry-wiring-check", (req, res, next) => {
+  if (req.query.token !== "verify-sentry-2026") return res.status(404).json({ error: "Not found" });
+  next(new Error("Sentry wiring check — deliberate test error, safe to ignore"));
+});
+
 // ─── 404 handler ─────────────────────────────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
