@@ -15,6 +15,7 @@
     "test:api": "bash scripts/test-api.sh",
     "test:calendar": "bash scripts/test-calendar.sh",
     "test:categories": "node scripts/test-loan-categories.mjs",
+    "test:full-resync": "node scripts/test-full-resync.mjs",
     "start:prod": "node db/migrate.js && node --import ./instrument.js index.js"
   },
   "dependencies": {

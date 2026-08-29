@@ -200,9 +200,18 @@ export const plaidApi = {
   removeItem: (itemId) =>
     api.delete(`/plaid/items/${itemId}`),
 
-  /** Trigger a manual transaction sync for all linked accounts */
-  sync: () =>
-    api.post("/plaid/sync", {}),
+  /**
+   * Trigger a manual transaction sync for all linked accounts.
+   *
+   * `recategorize: true` forces a full resync (ignores the stored cursor),
+   * so every already-stored transaction is re-run through the current
+   * category mapping. Needed because Plaid's cursor is incremental — it
+   * never re-sends a transaction just because OUR categorization logic
+   * changed, so an ordinary sync leaves old rows under whatever category
+   * they got the day they were first synced, even after a mapping fix ships.
+   */
+  sync: ({ recategorize = false } = {}) =>
+    api.post("/plaid/sync", { recategorize }),
 };
 
 // Thin wrappers so components import one thing, not raw paths

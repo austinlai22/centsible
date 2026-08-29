@@ -304,6 +304,13 @@ router.delete("/items/:itemId", validateUUID("itemId"), async (req, res, next) =
 // On-demand sync for all items belonging to the authenticated user.
 // In production this is triggered by webhooks; this endpoint is for
 // manual refreshes from the frontend.
+//
+// { recategorize: true } forces a full resync (ignores the stored cursor) so
+// every already-stored transaction gets re-run through the CURRENT category
+// mapping — see syncItem's fullResync doc for why this doesn't happen on its
+// own. Off by default: it re-pulls a linked account's entire transaction
+// history rather than just what's new, which is unnecessary Plaid API load
+// for the common case of "just check for new transactions."
 
 router.post("/sync", async (req, res, next) => {
   try {
@@ -316,8 +323,9 @@ router.post("/sync", async (req, res, next) => {
       return res.json({ message: "No linked accounts to sync", synced: 0 });
     }
 
+    const fullResync = req.body?.recategorize === true;
     // Run syncs in parallel (one per item)
-    const results = await Promise.allSettled(items.map(item => syncItem(item)));
+    const results = await Promise.allSettled(items.map(item => syncItem(item, { fullResync })));
 
     const summary = results.map((r, i) => ({
       item_id: items[i].plaid_item_id,

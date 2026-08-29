@@ -25,11 +25,26 @@ import { query }                          from "../db/client.js";
  * Fetches all pages until has_more is false, then writes to DB.
  *
  * @param {object} item  — row from plaid_items table
+ * @param {object} opts
+ * @param {boolean} [opts.fullResync] — ignore the stored cursor and pull
+ *   every transaction again, re-running category normalisation on all of
+ *   them. Plaid's cursor is INCREMENTAL: it returns only what's new or
+ *   changed since last time, so it never re-delivers a transaction just
+ *   because OUR mapping logic changed — Plaid has no way to know that
+ *   happened. Confirmed directly: an already-linked account had "CREDIT
+ *   CARD 3333 PAYMENT", "Tectra Inc", "Madison Bicycle Shop", and a
+ *   TRANSFER_OUT row all still sitting under "Other", months after mappings
+ *   existed for every one of them (RENT_AND_UTILITIES, TRANSPORTATION,
+ *   PERSONAL_CARE, TRANSFER_OUT, and now LOAN_PAYMENTS_CREDIT_CARD_PAYMENT).
+ *   The ON CONFLICT...DO UPDATE below already sets category = EXCLUDED on
+ *   every write, so a normal incremental sync WOULD fix these rows if Plaid
+ *   ever re-sent them — it just never does on its own. This is the one
+ *   place that forces it to.
  * @returns {object}     — { added, modified, removed } counts
  */
-export async function syncItem(item) {
+export async function syncItem(item, { fullResync = false } = {}) {
   const accessToken = decrypt(item.access_token_enc);
-  let cursor        = item.cursor || undefined; // undefined = full initial sync
+  let cursor        = fullResync ? undefined : (item.cursor || undefined); // undefined = full sync
 
   const added    = [];
   const modified = [];
