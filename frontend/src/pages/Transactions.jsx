@@ -37,6 +37,31 @@ export default function Transactions({transactions,loading,error,reload,addTxn,u
       setSyncing(false);
     }
   };
+
+  /**
+   * A separate, deliberate action rather than folded into the everyday sync
+   * button above: Plaid's sync is incremental and never re-sends a
+   * transaction just because our category rules changed, so an improved
+   * mapping is otherwise invisible on anything already synced. This re-pulls
+   * the full history (more Plaid load than a normal sync, and slower) to
+   * actually apply it — confirmed rather than one click away from the
+   * refresh icon, since it's not something to run every time.
+   */
+  const [recategorizing,setRecategorizing]=useState(false);
+  const [recatErr,setRecatErr]=useState("");
+  const recategorize = async () => {
+    if(!window.confirm("Re-check every transaction's category against the latest rules? This re-reads your full bank history, so it takes longer than a normal sync.")) return;
+    setRecategorizing(true); setRecatErr("");
+    try {
+      await plaidApi.sync({recategorize:true});
+      await reload();
+    } catch (e) {
+      setRecatErr(e.message || "Couldn't refresh categories right now.");
+    } finally {
+      setRecategorizing(false);
+    }
+  };
+
   const [saveErr,setSaveErr]=useState("");
 
   const setF=k=>e=>setForm(p=>({...p,[k]:e.target.value}));
@@ -102,6 +127,7 @@ export default function Transactions({transactions,loading,error,reload,addTxn,u
     <div className="slide-up" style={{...S.col,gap:14}}>
       <ErrorBanner message={error} onRetry={reload}/>
       <ErrorBanner message={syncErr} onRetry={syncBank}/>
+      <ErrorBanner message={recatErr} onRetry={recategorize}/>
 
       <div style={{...S.row,gap:10}}>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…" type="search" aria-label="Search transactions"
@@ -112,6 +138,14 @@ export default function Transactions({transactions,loading,error,reload,addTxn,u
         </button>
         <button onClick={openAdd} className="btn btn-primary" style={S.btn("var(--primary)","#fff",{borderRadius:12,padding:"11px 18px",minHeight:44,whiteSpace:"nowrap"})}>+ Add</button>
       </div>
+
+      {/* Secondary, not tucked next to the everyday sync control — this
+          re-reads your whole bank history, not just what's new. */}
+      <button onClick={recategorize} disabled={recategorizing}
+        style={{alignSelf:"flex-start",background:"none",border:"none",color:"var(--muted)",fontSize:12,cursor:"pointer",padding:0,opacity:recategorizing?.6:1,display:"flex",alignItems:"center",gap:6}}>
+        {recategorizing?<Spinner size={11}/>:null}
+        {recategorizing?"Refreshing categories…":"Re-check transaction categories against the latest rules"}
+      </button>
 
       <div className="scroll-x" style={{display:"flex",gap:7,paddingBottom:2}}>
         {["All",...Object.keys(CATEGORY_META)].map(c=>(
