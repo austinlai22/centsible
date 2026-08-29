@@ -25,10 +25,10 @@ The full terms below are the actual agreement. Read them.
 
 ## 1. Who you're agreeing with
 
-Centsible is currently operated by **Austin Lai**, an individual, as an
-independent, unincorporated project — not a registered company. When these
-Terms say "we," "us," or "Centsible," they mean Austin Lai personally. If
-that changes — for example, if Centsible incorporates — this section will be
+Centsible is currently operated by an individual, as an independent,
+unincorporated project — not a registered company. When these Terms say
+"we," "us," or "Centsible," they mean that individual personally. If that
+changes — for example, if Centsible incorporates — this section will be
 updated and you'll be notified before the change applies to you (§11).
 
 By creating an account or using the app, you're entering this agreement with
@@ -120,7 +120,7 @@ other users.
 
 ## 7. Intellectual property
 
-The Centsible name, design, and underlying code are owned by Austin Lai
+The Centsible name, design, and underlying code are owned by us
 except where third-party components (open-source libraries, Plaid's SDK,
 etc.) are used under their own licenses. You're granted a personal,
 non-transferable, revocable license to use the app for its intended
@@ -154,7 +154,7 @@ so some of the above may not apply to you to that extent.
 
 ## 9. Limitation of liability
 
-**To the maximum extent permitted by law**, Austin Lai will not be liable
+**To the maximum extent permitted by law**, we will not be liable
 for any indirect, incidental, special, consequential, or punitive damages,
 or any loss of profits, revenue, data, or financial opportunity, arising
 from your use of or inability to use the app — even if advised of the
@@ -176,7 +176,7 @@ the above may not apply to you to that extent.
 
 ## 10. Indemnification
 
-You agree to indemnify and hold harmless Austin Lai from any claim, demand,
+You agree to indemnify and hold us harmless from any claim, demand,
 loss, or expense (including reasonable legal fees) arising from: your
 violation of these Terms, your violation of any law, or your violation of
 any third-party right, including anything you submit or connect through the
@@ -216,10 +216,10 @@ consistent with the Privacy Policy.
 Most concerns can be resolved informally — email contact@example.com
 first and we'll try to sort it out directly.
 
-If a dispute can't be resolved informally within 30 days, you and Austin
-Lai agree that it will be resolved by binding individual arbitration rather
+If a dispute can't be resolved informally within 30 days, you and we
+agree that it will be resolved by binding individual arbitration rather
 than in court, except that either party may bring an individual claim in
-small claims court if it qualifies. **You and Austin Lai each waive the
+small claims court if it qualifies. **You and we each waive the
 right to a jury trial and to participate in a class action or class
 arbitration.**
 
@@ -245,7 +245,7 @@ If any provision of these Terms is found unenforceable, the rest remain in
 full effect, and the unenforceable provision will be interpreted to
 accomplish its intent as closely as possible under applicable law. These
 Terms, together with the Privacy Policy, are the entire agreement between
-you and Austin Lai regarding the app.
+you and us regarding the app.
 
 ---
 

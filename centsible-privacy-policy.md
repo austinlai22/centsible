@@ -17,7 +17,7 @@
 
 ## 1. Who we are
 
-Centsible is a personal finance app built to help you understand and improve your relationship with money. It is currently operated by **Austin Lai**, an individual based in California, United States, as an independent, unincorporated project — not yet a registered company ("Centsible," "we," "us," or "our"). If that changes, this section will be updated to name the entity, and you'll be notified per §9.
+Centsible is a personal finance app built to help you understand and improve your relationship with money. It is currently operated by an individual based in California, United States, as an independent, unincorporated project — not yet a registered company ("Centsible," "we," "us," or "our"). If that changes, this section will be updated to name the entity, and you'll be notified per §9.
 
 Questions about this policy: **contact@example.com**
 
@@ -200,6 +200,6 @@ If you feel we haven't adequately addressed a concern, you may have the right to
 
 | Date | Change |
 |------|--------|
-| August 28, 2026 | Named the actual operator (an individual, not an incorporated company) in place of placeholder text; dropped the mailing-address requirement (not legally required — see §1); corrected §2c, §4, and §5 to describe only features that actually exist in the app today (no analytics collection, no self-service export button yet); filled in the real service providers in §4 |
+| August 28, 2026 | Replaced placeholder text with the actual operating structure (an individual, not an incorporated company) without naming the operator publicly; dropped the mailing-address requirement (not legally required — see §1); corrected §2c, §4, and §5 to describe only features that actually exist in the app today (no analytics collection, no self-service export button yet); filled in the real service providers in §4 |
 | May 20, 2025 | Initial policy published |
 
