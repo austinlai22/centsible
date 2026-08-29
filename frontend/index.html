@@ -44,6 +44,14 @@
         fonts.googleapis.com / fonts.gstatic.com  → Fraunces + DM Sans
         cdn.plaid.com                             → Plaid Link SDK + iframe
         connect-src 'self' + your API origin      → fetch() calls to the backend
+        *.ingest.us.sentry.io                     → error reports, when VITE_SENTRY_DSN
+                                                      is set (silently blocked without
+                                                      this — no console error a build
+                                                      check would catch, just error
+                                                      reporting that quietly never
+                                                      arrives; caught this only by
+                                                      triggering a real error in a real
+                                                      browser and watching it get refused)
 
       __API_ORIGIN__ is substituted at build time by the csp-api-origin plugin
       in vite.config.js, from VITE_API_URL. It used to be a hardcoded
@@ -63,7 +71,7 @@
         form-action 'self';
         object-src 'none';
         script-src 'self' https://cdn.plaid.com;
-        connect-src 'self' https://cdn.plaid.com https://*.plaid.com __API_ORIGIN__;
+        connect-src 'self' https://cdn.plaid.com https://*.plaid.com https://*.ingest.us.sentry.io __API_ORIGIN__;
         frame-src https://cdn.plaid.com;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src 'self' https://fonts.gstatic.com;
