@@ -55,7 +55,7 @@ export async function syncItem(item) {
   }
 
   // ── Write to DB in a transaction ──────────────────────────────────────────
-  const client = await (await import("../db/client.js")).pool.connect();
+  const client = await (await import("../db/client.js")).connectClient();
   try {
     await client.query("BEGIN");
 

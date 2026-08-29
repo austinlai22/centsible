@@ -18,13 +18,13 @@
 import "dotenv/config";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { pool } from "./client.js";
+import { pool, connectClient } from "./client.js";
 
 const SEED_EMAIL = process.env.SEED_EMAIL || "demo@flowapp.test";
 const SEED_PASSWORD = process.env.SEED_PASSWORD || crypto.randomBytes(9).toString("base64url");
 
 async function seed() {
-  const client = await pool.connect();
+  const client = await connectClient();
   try {
     console.log("[seed] Checking for existing seed user…");
     const existing = await client.query("SELECT id FROM users WHERE email = $1", [SEED_EMAIL]);

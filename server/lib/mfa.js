@@ -17,7 +17,7 @@
  */
 
 import crypto from "crypto";
-import { query, pool } from "../db/client.js";
+import { query, connectClient } from "../db/client.js";
 import { encrypt, decrypt } from "./crypto.js";
 import * as totp from "./totp.js";
 
@@ -210,7 +210,7 @@ export async function generateRecoveryCodes(userId) {
 
   const codes = Array.from({ length: RECOVERY_CODE_COUNT }, make);
 
-  const client = await pool.connect();
+  const client = await connectClient();
   try {
     await client.query("BEGIN");
     await client.query("DELETE FROM mfa_recovery_codes WHERE user_id = $1", [userId]);
@@ -250,7 +250,7 @@ export async function consumeRecoveryCode(userId, code) {
 
 /** Turns MFA off entirely and burns any remaining recovery codes. */
 export async function disableMfa(userId) {
-  const client = await pool.connect();
+  const client = await connectClient();
   try {
     await client.query("BEGIN");
     await client.query("DELETE FROM user_mfa_factors  WHERE user_id = $1", [userId]);

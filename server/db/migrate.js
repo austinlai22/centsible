@@ -18,7 +18,7 @@
  */
 
 import "dotenv/config";
-import { pool } from "./client.js";
+import { pool, connectClient } from "./client.js";
 
 const SCHEMA = `
 -- ── Enable UUID generation ────────────────────────────────────────────────────
@@ -481,7 +481,7 @@ $$;
 `;
 
 async function migrate() {
-  const client = await pool.connect();
+  const client = await connectClient();
   try {
     console.log("[migrate] Running schema migration…");
     await client.query(SCHEMA);

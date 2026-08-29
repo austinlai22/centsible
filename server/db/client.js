@@ -40,10 +40,38 @@ export const pool = new Pool({
     : false,
 });
 
-// Surfaces connection errors (e.g. dropped connections) without crashing
+// Surfaces connection errors (e.g. dropped connections) without crashing.
+//
+// This ONLY covers clients sitting IDLE in the pool. A client currently
+// checked out via pool.connect() — every multi-statement transaction in this
+// app (budgets, rewards, sync) — is a separate EventEmitter, and Node throws
+// an unhandled exception for any 'error' event with no listener, crashing the
+// whole process. Confirmed directly: emitting 'error' on a checked-out client
+// with no listener took down the process with this exact message; the same
+// emit with a listener attached did not.
+//
+// This is exactly what happened in production: Neon closed a connection out
+// from under a checked-out client mid-transaction ("Connection terminated
+// unexpectedly"), Node had nothing listening on that client, and the crash
+// took every in-flight request with it — not just the one whose transaction
+// actually failed. Render's restart is what a browser sees as a 502.
 pool.on("error", (err) => {
   console.error("[db] Unexpected pool error:", err.message);
 });
+
+/**
+ * pool.connect(), plus the listener above's job but for the checked-out
+ * client itself. Use this instead of pool.connect() directly anywhere a
+ * multi-statement transaction is needed — which is everywhere pool.connect()
+ * was being called before this existed.
+ */
+export async function connectClient() {
+  const client = await pool.connect();
+  client.on("error", (err) => {
+    console.error("[db] Unexpected error on a checked-out client:", err.message);
+  });
+  return client;
+}
 
 /**
  * Thin query helper — use this everywhere instead of pool.query()
@@ -60,7 +88,7 @@ export async function query(sql, params) {
 
 /** Called on startup to verify the database is reachable. */
 export async function testConnection() {
-  const client = await pool.connect();
+  const client = await connectClient();
   try {
     const { rows } = await client.query("SELECT NOW() AS now");
     console.log("[db] Connected to PostgreSQL:", rows[0].now);

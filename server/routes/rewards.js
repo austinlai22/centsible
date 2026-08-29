@@ -21,7 +21,7 @@
 
 import { Router } from "express";
 import { z }      from "zod";
-import { query, pool } from "../db/client.js";
+import { query, connectClient } from "../db/client.js";
 import { requireAuth } from "../middleware/auth.js";
 import { NON_MONTHLY_CATEGORIES } from "../lib/categories.js";
 
@@ -196,7 +196,7 @@ router.post("/earn", async (req, res, next) => {
       if (reason) return res.status(409).json({ error: reason, earned: 0 });
     }
 
-    const client = await pool.connect();
+    const client = await connectClient();
     try {
       await client.query("BEGIN");
 
@@ -263,7 +263,7 @@ router.post("/redeem", async (req, res, next) => {
       return res.status(400).json({ error: "Unknown charity" });
     }
 
-    const client = await pool.connect();
+    const client = await connectClient();
     try {
       await client.query("BEGIN");
 

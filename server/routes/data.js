@@ -363,7 +363,7 @@ router.put("/budgets", async (req, res, next) => {
     const semester = parseSemester(req.query.semester);
     const categories = parsed.data;
 
-    const client = await (await import("../db/client.js")).pool.connect();
+    const client = await (await import("../db/client.js")).connectClient();
     try {
       await client.query("BEGIN");
       for (const [category, amount] of Object.entries(categories)) {
