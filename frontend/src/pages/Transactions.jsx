@@ -44,8 +44,13 @@ export default function Transactions({transactions,loading,error,reload,addTxn,u
   // Categories valid for the selected frequency. Category and frequency must
   // stay in sync — setFrequency resets category to the first valid option so a
   // stale pair (frequency=one-time, category=Food) can never be submitted.
+  // Transfer categories (Savings, CreditCardPayment, …) are excluded
+  // generically — checking the flag rather than naming "Savings" specifically
+  // means a new transfer category doesn't need this line touched again to
+  // stay out of the manual-entry dropdown, where none of them belong: you
+  // don't "spend" a transfer, so there's nothing to log by hand.
   const catsForFrequency=(freq)=>
-    Object.entries(CATEGORY_META).filter(([k,meta])=>k!=="Savings"&&meta.period===(freq==="monthly"?"monthly":"semester"));
+    Object.entries(CATEGORY_META).filter(([,meta])=>!meta.transfer&&meta.period===(freq==="monthly"?"monthly":"semester"));
 
   const setFrequency=(freq)=>setForm(p=>{
     const opts=catsForFrequency(freq);

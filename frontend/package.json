@@ -16,6 +16,7 @@
     "test:regressions": "node scripts/test-regressions.mjs",
     "test:disbursement": "node scripts/test-disbursement-flow.mjs",
     "test:pages": "node scripts/test-pages.mjs",
+    "test:cc-payment": "node scripts/test-cc-payment.mjs",
     "test:prod": "node scripts/test-prod-build.mjs"
   },
   "dependencies": {

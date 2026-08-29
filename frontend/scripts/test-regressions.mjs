@@ -9,7 +9,7 @@
  * only appear west of UTC, which is where this app's users are.
  */
 import { computeRunway, topLever } from "../src/lib/runway.js";
-import { termForDate, semesterForDate, semesterMonthCount, shiftSemester, catSpendMap } from "../src/lib/periods.js";
+import { termForDate, semesterForDate, semesterMonthCount, shiftSemester, catSpendMap, periodTotals } from "../src/lib/periods.js";
 import { toLocalISO, addDays, daysBetween } from "../src/lib/dates.js";
 
 let pass = 0, fail = 0;
@@ -148,6 +148,57 @@ t("a term-category purchase on the closing day appears in the breakdown", () => 
   const spend = catSpendMap([{ date: "2026-12-19", amount: 500, category: "BooksSupplies", type: "expense" }],
     "semester", new Date(2026, 11, 19, 12), TERMS);
   near(spend.BooksSupplies || 0, 500, 0.01, "closing-day term spend");
+});
+
+console.log("\n=== paying off a credit card is not spending ===");
+
+t("a credit card payment does not inflate income and expenses", () => {
+  // Plaid sends this as a matched pair when both accounts are linked: an
+  // expense on checking (paying the bill) and an equal-and-opposite income
+  // on the card (the balance dropping). Both were "Other" before this fix,
+  // so a $500 bill on a $2000/$300 month turned an 85% savings rate into
+  // 1700/2500 = 68% — real money never moved, only accounting noise did.
+  const now = new Date(2026, 8, 15, 12);
+  const d = (day) => `2026-09-${String(day).padStart(2, "0")}`;
+  const txns = [
+    { date: d(2), amount: 2000, category: "Other", type: "income" },
+    { date: d(4), amount: 300,  category: "Food",  type: "expense" },
+    { date: d(5), amount: 500,  category: "CreditCardPayment", type: "expense" },
+    { date: d(5), amount: 500,  category: "CreditCardPayment", type: "income" },
+  ];
+  const totals = periodTotals(txns, now, []);
+  eq(totals.income, 2000, "income");
+  eq(totals.expenses, 300, "expenses");
+  eq(totals.savingsRate, 85, "savings rate");
+});
+
+t("a credit card payment never appears as budgeted spend", () => {
+  const spend = catSpendMap(
+    [{ date: "2026-09-05", amount: 500, category: "CreditCardPayment", type: "expense" }],
+    "monthly", new Date(2026, 8, 15, 12));
+  if ("CreditCardPayment" in spend) throw new Error("counted toward a category budget");
+});
+
+t("a credit card payment does not count toward burn rate", () => {
+  const r = computeRunway(
+    [tx("2026-08-25", 20, "Food"), tx("2026-08-25", 500, "CreditCardPayment")],
+    [], new Date(2026, 7, 25, 12), { terms: TERMS });
+  near(r.termSpend, 20, 0.01, "term spend excludes the card payment");
+});
+
+t("only CreditCardPayment is a transfer category among this session's additions", () => {
+  // The actual Plaid-taxonomy risk — that mortgage/student-loan/car payments
+  // under the same LOAN_PAYMENTS primary category don't get swept into the
+  // same transfer bucket — lives in server/lib/plaid.js's normaliseCategory
+  // and is covered there (server/scripts/test-loan-categories.mjs), since
+  // that mapping doesn't exist on the frontend at all. This just guards the
+  // CATEGORY_META registration itself: an "Other" transaction (what a
+  // mortgage/student-loan/car payment still resolves to today) must NOT be
+  // silently caught by whatever marks CreditCardPayment as a transfer.
+  const totals = periodTotals(
+    [{ date: "2026-09-05", amount: 400, category: "Other", type: "expense" }],
+    new Date(2026, 8, 15, 12), []);
+  eq(totals.expenses, 400, "an 'Other' expense (unmapped loan payments land here) still counts");
 });
 
 console.log(`\n  PASSED: ${pass}   FAILED: ${fail}`);

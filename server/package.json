@@ -14,6 +14,7 @@
     "test:mfa": "bash scripts/test-mfa.sh",
     "test:api": "bash scripts/test-api.sh",
     "test:calendar": "bash scripts/test-calendar.sh",
+    "test:categories": "node scripts/test-loan-categories.mjs",
     "start:prod": "node db/migrate.js && node --import ./instrument.js index.js"
   },
   "dependencies": {

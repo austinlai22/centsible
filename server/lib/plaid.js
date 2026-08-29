@@ -79,14 +79,33 @@ const PLAID_TO_APP = {
 };
 
 /**
- * Maps a Plaid personal_finance_category primary value to our app category.
+ * DETAILED-level overrides, checked before the primary-level map above.
+ *
+ * LOAN_PAYMENTS is one primary category covering several genuinely different
+ * things — a credit card payment, a mortgage, a car loan, a student loan —
+ * and only ONE of those is a transfer. A mortgage or student loan payment is
+ * real recurring spending a budget needs to see; paying off a credit card is
+ * settling a debt for purchases already made (tracked elsewhere if that card
+ * is itself linked, untrackable by this app at all if it isn't) — either way,
+ * counting the payment AGAIN as an expense double-counts money that already
+ * left the picture once. Matching on `primary` alone can't tell these apart;
+ * per Plaid's own taxonomy (plaid.com/documents/pfc-taxonomy-all.csv) the
+ * distinction lives entirely in `detailed`.
+ */
+const PLAID_DETAILED_TO_APP = {
+  "LOAN_PAYMENTS_CREDIT_CARD_PAYMENT": "CreditCardPayment",
+};
+
+/**
+ * Maps a Plaid personal_finance_category to our app category.
  * Falls back to "Other" for anything unmapped.
  *
  * @param {string|null} primary  — e.g. "FOOD_AND_DRINK"
- * @param {string|null} detailed — e.g. "FAST_FOOD" (reserved for future refinement)
- * @returns {string}  One of the eight app category labels
+ * @param {string|null} detailed — e.g. "LOAN_PAYMENTS_CREDIT_CARD_PAYMENT"
+ * @returns {string}  One of the app's category labels
  */
-export function normaliseCategory(primary, _detailed) {
+export function normaliseCategory(primary, detailed) {
+  if (detailed && PLAID_DETAILED_TO_APP[detailed]) return PLAID_DETAILED_TO_APP[detailed];
   if (!primary) return "Other";
   // Exact match first
   if (PLAID_TO_APP[primary]) return PLAID_TO_APP[primary];

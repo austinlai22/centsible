@@ -67,6 +67,15 @@ export const CATEGORY_META = {
   // reported savings rate — the app told you that you were doing worse for
   // doing the right thing.
   Savings:        {icon:"💰",color:"#1baf7a",colorLight:"#E8F7F2",period:"monthly",transfer:true},
+  // Paying off a credit card is settling a debt you already incurred, not new
+  // spending — the actual purchases were tracked (correctly, under their own
+  // categories) either when they hit this same card as its own linked
+  // account, or they never will be, if that card isn't linked at all. Either
+  // way, counting the PAYMENT itself as an expense double-counts money that
+  // already left the picture once. Same color as Savings on purpose: both are
+  // "money moved, not spent," and Budget already hides every transfer
+  // category from the spendable list, so the shared hue never collides.
+  CreditCardPayment: {icon:"💳",color:"#1baf7a",colorLight:"#E8F7F2",period:"monthly",transfer:true,label:"Credit Card Payment"},
   Other:          {icon:"📦",color:"#96591f",colorLight:"#F4EEE9",period:"monthly"},
   // ── Student categories — termly/one-time expenses, shown in Semester view ──
   // Aid money arriving. period:"semester" is load-bearing: it keeps a lump-sum

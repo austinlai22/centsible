@@ -19,6 +19,11 @@
 export const CATEGORY_PERIOD = {
   Housing: "monthly", Food: "monthly", Transport: "monthly", Health: "monthly",
   Shopping: "monthly", Entertainment: "monthly", Savings: "monthly", Other: "monthly",
+  // A credit card bill payment settles a debt for purchases already made
+  // (tracked under their own categories, on this card or nowhere this app
+  // can see) — counting the payment ITSELF as an expense double-counts that
+  // spending a second time. Transfer, like Savings, for the same reason.
+  CreditCardPayment: "monthly",
   // Disbursement is aid ARRIVING — the single most important thing a student
   // on this app logs. Omitting it made VALID_CATEGORIES reject it, so
   // POST /api/transactions answered the app's central action with a 400 while
@@ -35,7 +40,7 @@ export const VALID_CATEGORIES = Object.keys(CATEGORY_PERIOD);
  * Counting them inflates both sides at once and makes saving money look like
  * a worse savings rate.
  */
-export const TRANSFER_CATEGORIES = ["Savings"];
+export const TRANSFER_CATEGORIES = ["Savings", "CreditCardPayment"];
 
 /**
  * Categories that must not touch a MONTHLY income/expense rate: every
