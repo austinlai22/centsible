@@ -169,6 +169,14 @@ run on your laptop.
 
 ## Still outstanding
 
+- **No working contact email in the legal docs.** Both `centsible-privacy-policy.md`
+  and `centsible-terms-of-service.md` currently have `[Contact email — to be
+  added]` as a deliberate placeholder — the personal email that was there
+  named the operator, same reason the name itself was removed elsewhere.
+  CalOPPA doesn't require a physical address, but it does require *some*
+  reachable contact — this is the one legal-doc gap currently blocking
+  `preflight.sh`. Cheapest fix: a free email address that isn't your name
+  (see the conversation this came from for the exact reasoning).
 - **Sandbox-only Plaid.** Production access is Plaid's own review process,
   not a config change — apply whenever you're ready for real banks.
 - **No domain/trademark check done** for "Centsible" — worth a quick search

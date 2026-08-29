@@ -151,7 +151,7 @@ export const PRIVACY_SECTIONS = [
   {title:"Your rights and controls",  body:"Access: email us to request a full export — there's no self-service button for this yet.\n\nDeletion: delete your account and all data via About → Delete my account. Data permanently removed within 30 days.\n\nCalifornia residents: CCPA's legal thresholds don't apply to us at this size, but we offer the same rights anyway — to know, delete, opt out of any sale (we don't sell it), and non-discrimination. We extend these to all users regardless of state."},
   {title:"Security",                  body:"TLS 1.3 in transit. AES-256 at rest. Minimal staff access, all logged. No bank credentials stored. Breach notification within 72 hours."},
   {title:"Changes to this policy",    body:"Material changes notified in-app 30 days before effect, with your explicit acknowledgement required."},
-  {title:"Contact",                   body:"contact@example.com — we respond within 2 business days."},
+  {title:"Contact",                   body:"[Contact email — to be added] — we respond within 2 business days."},
 ];
 
 // Keep in sync with centsible-terms-of-service.md — same reasoning as
@@ -165,7 +165,7 @@ export const TERMS_SECTIONS = [
   {title:"No warranty, limited liability", body:"The app is provided \"as is,\" with no guarantee of uptime, accuracy, or fitness for any particular purpose — it currently runs on free infrastructure that sleeps when idle. To the extent the law allows, liability for any claim is capped at the greater of what you've paid us in the last 12 months or $50 — since the app is free today, that's $50 in practice."},
   {title:"Disputes",                  body:"Email us first — most things get resolved directly. Unresolved disputes go to binding individual arbitration rather than court, and you and Centsible each waive the right to a jury trial or a class action. Governing law is California."},
   {title:"Changes to these Terms",    body:"Material changes are announced in-app at least 30 days before they take effect and require your explicit acknowledgement, the same as the Privacy Policy."},
-  {title:"Contact",                   body:"contact@example.com — we respond within 2 business days."},
+  {title:"Contact",                   body:"[Contact email — to be added] — we respond within 2 business days."},
 ];
 
 export const NAV = [

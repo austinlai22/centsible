@@ -19,7 +19,7 @@
 
 Centsible is a personal finance app built to help you understand and improve your relationship with money. It is currently operated by an individual based in California, United States, as an independent, unincorporated project — not yet a registered company ("Centsible," "we," "us," or "our"). If that changes, this section will be updated to name the entity, and you'll be notified per §9.
 
-Questions about this policy: **contact@example.com**
+Questions about this policy: **[Contact email — to be added]**
 
 A physical mailing address isn't required for this policy under California law (CalOPPA) — email is the fastest way to reach us and the one we actually check.
 
@@ -124,7 +124,7 @@ We may disclose information if required by law (e.g. a valid court order), but w
 
 You are in control of your data. Here is what you can do, and how:
 
-**Access:** Request a full export of everything we have about you by emailing contact@example.com. We'll send a structured file (JSON or CSV) within 7 days. (There's no self-service export button in the app yet — for now this is a manual request, answered by a person.)
+**Access:** Request a full export of everything we have about you by emailing [Contact email — to be added]. We'll send a structured file (JSON or CSV) within 7 days. (There's no self-service export button in the app yet — for now this is a manual request, answered by a person.)
 
 **Correction:** If any of your data is inaccurate, you can edit it directly in the app, or contact us to do it for you.
 
@@ -167,7 +167,7 @@ No system is perfectly secure. If we ever experience a breach affecting your dat
 
 ## 8. Children's privacy
 
-Centsible is not directed at children under 13. We do not knowingly collect personal information from anyone under 13. If you believe a child has provided us with their information, please contact us at contact@example.com and we will delete it promptly.
+Centsible is not directed at children under 13. We do not knowingly collect personal information from anyone under 13. If you believe a child has provided us with their information, please contact us at [Contact email — to be added] and we will delete it promptly.
 
 ---
 
@@ -189,7 +189,7 @@ Minor changes (fixing typos, clarifying language without changing meaning) will 
 
 If you have questions, concerns, or requests about your privacy:
 
-**Email:** contact@example.com  
+**Email:** [Contact email — to be added]  
 **Response time:** We aim to respond within 2 business days.
 
 If you feel we haven't adequately addressed a concern, you may have the right to lodge a complaint with your state's attorney general office or a relevant consumer protection authority.

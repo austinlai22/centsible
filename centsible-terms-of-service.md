@@ -54,7 +54,7 @@ account we reasonably believe belongs to someone under 18.
   or not you personally performed it, except where that activity results
   from our failure to secure the service as described in our Privacy
   Policy.
-- Tell us promptly (contact@example.com) if you suspect unauthorized
+- Tell us promptly ([Contact email — to be added]) if you suspect unauthorized
   access to your account.
 - You may delete your account at any time from **About → Delete my
   account**. See the Privacy Policy for what happens to your data after
@@ -213,7 +213,7 @@ consistent with the Privacy Policy.
 
 **Please read this section carefully — it affects your legal rights.**
 
-Most concerns can be resolved informally — email contact@example.com
+Most concerns can be resolved informally — email [Contact email — to be added]
 first and we'll try to sort it out directly.
 
 If a dispute can't be resolved informally within 30 days, you and we
@@ -251,7 +251,7 @@ you and us regarding the app.
 
 ## 16. Contact
 
-**Email:** contact@example.com
+**Email:** [Contact email — to be added]
 **Response time:** We aim to respond within 2 business days.
 
 ---
