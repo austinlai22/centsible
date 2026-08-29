@@ -36,7 +36,8 @@ t("every day of a year lands in exactly one semester", () => {
     const s = semesterForDate(new Date(d));
     if (!s || !s.name) throw new Error(`no semester for ${d.toDateString()}`);
     const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    if (!(iso >= s.start && iso < s.end)) throw new Error(`${iso} outside its own semester ${s.start}..${s.end}`);
+    // Inclusive at both ends: `end` is the semester's last day.
+    if (!(iso >= s.start && iso <= s.end)) throw new Error(`${iso} outside its own semester ${s.start}..${s.end}`);
   }
 });
 t("shiftSemester steps exactly one semester each way", () => {

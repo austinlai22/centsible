@@ -16,10 +16,7 @@
  */
 
 import { termForDate, isTransfer, isTermItem } from "./periods.js";
-
-const DAY = 86_400_000;
-const iso = (d) => d.toISOString().slice(0, 10);
-const daysBetween = (a, b) => Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / DAY);
+import { toLocalISO, addDays, daysBetween } from "./dates.js";
 
 /**
  * How much a student can spend per day for the rest of the term, what they're
@@ -34,7 +31,10 @@ export function computeRunway(transactions = [], accounts = [], refDate = new Da
   const { burnWindowDays = 30, terms = null, disbursements = [] } = opts;
 
   const term  = termForDate(refDate, terms);
-  const today = iso(refDate);
+  // The student's own calendar date. termForDate already works in local time;
+  // deriving "today" any other way makes the two disagree for half of every
+  // day. See lib/dates.js.
+  const today = toLocalISO(refDate);
 
   /**
    * What the money actually has to reach.
@@ -71,9 +71,12 @@ export function computeRunway(transactions = [], accounts = [], refDate = new Da
 
   // Transactions inside this term, transfers excluded — moving money between
   // your own accounts is neither income nor spending.
+  // term.end is the last day IN the term (see periods.js), so it's inclusive —
+  // otherwise everything spent on the final day of term vanishes from the
+  // totals.
   const inTerm = (transactions || []).filter(t => {
     const d = String(t.date || "").slice(0, 10);
-    return d >= term.start && d < term.end && !isTransfer(t.category);
+    return d >= term.start && d <= term.end && !isTransfer(t.category);
   });
 
   const termIncome = inTerm.filter(t => t.type === "income")
@@ -110,8 +113,19 @@ export function computeRunway(transactions = [], accounts = [], refDate = new Da
    *   overstatement. Clamping the window to the term start keeps numerator and
    *   denominator describing the same period.
    */
-  const rawWindowStart = iso(new Date(refDate.getTime() - burnWindowDays * DAY));
-  const windowStart    = rawWindowStart > term.start ? rawWindowStart : term.start;
+  // burnWindowDays - 1, because the filter below is inclusive at BOTH ends:
+  // subtracting the full 30 spans 31 calendar days and quietly divides 31
+  // days of spending by 30.
+  const rawWindowStart = addDays(today, -(burnWindowDays - 1));
+  // Clamp to the term start only once the term is actually under way. For a
+  // term that hasn't begun (a student on summer break, where termForDate
+  // returns the upcoming one) the clamp would push the window into the future,
+  // match nothing, and report a burn rate of $0/day — the app told someone
+  // spending $50/day through the break that they were "on track" with nothing
+  // logged. Outside a running term the honest window is simply the trailing
+  // one.
+  const termUnderWay   = term.start <= today;
+  const windowStart    = termUnderWay && term.start > rawWindowStart ? term.start : rawWindowStart;
   const windowSpend = (transactions || [])
     .filter(t => {
       const d = String(t.date || "").slice(0, 10);
@@ -120,8 +134,8 @@ export function computeRunway(transactions = [], accounts = [], refDate = new Da
     })
     .reduce((s, t) => s + (Number(t.amount) || 0), 0);
 
-  // Days actually covered by that window, never more than the term has run.
-  const observedDays = Math.max(1, Math.min(daysBetween(windowStart, today) || 1, burnWindowDays));
+  // Days the window actually covers, counting both endpoints.
+  const observedDays = Math.max(1, Math.min(daysBetween(windowStart, today) + 1, burnWindowDays));
   const burnPerDay   = windowSpend / observedDays;
 
   // What they COULD spend per day and still reach the end of term.
@@ -130,7 +144,7 @@ export function computeRunway(transactions = [], accounts = [], refDate = new Da
   // How long the money lasts at the current rate.
   const daysOfRunway = burnPerDay > 0 ? Math.floor(available / burnPerDay) : Infinity;
   const runsOutOn    = Number.isFinite(daysOfRunway) && daysOfRunway < daysRemaining
-    ? iso(new Date(refDate.getTime() + daysOfRunway * DAY))
+    ? addDays(today, daysOfRunway)
     : null;
 
   // Positive = days of slack past the end of term; negative = days short.
@@ -170,11 +184,23 @@ export function computeRunway(transactions = [], accounts = [], refDate = new Da
 export function topLever(transactions = [], runway, refDate = new Date(), burnWindowDays = 30) {
   if (!runway || runway.status !== "short") return null;
 
-  const today = iso(refDate);
-  const windowStart = iso(new Date(refDate.getTime() - burnWindowDays * DAY));
+  const today = toLocalISO(refDate);
+  // Must match computeRunway's burn window exactly. The gap this closes is
+  // measured against burnPerDay, so drawing the lever from a DIFFERENT set of
+  // transactions produces advice that doesn't add up: an unclamped window
+  // named a category the student stopped spending on when last term ended,
+  // and including one-off term items produced "about 1 fewer tuition
+  // purchases a week" — advice for a bill nobody can decline.
+  const rawWindowStart = addDays(today, -(burnWindowDays - 1));
+  const termUnderWay   = runway.term.start <= today;
+  const windowStart    = termUnderWay && runway.term.start > rawWindowStart
+    ? runway.term.start
+    : rawWindowStart;
+
   const recent = (transactions || []).filter(t => {
     const d = String(t.date || "").slice(0, 10);
-    return d >= windowStart && d <= today && t.type !== "income" && !isTransfer(t.category);
+    return d >= windowStart && d <= today
+        && t.type !== "income" && !isTransfer(t.category) && !isTermItem(t.category);
   });
   if (!recent.length) return null;
 
@@ -190,7 +216,11 @@ export function topLever(transactions = [], runway, refDate = new Date(), burnWi
   // Daily overspend that has to disappear for the money to reach term end.
   const gapPerDay   = -runway.dailyAdjustment;
   const perPurchase = stats.total / stats.count;
-  const purchasesPerWeek = (stats.count / burnWindowDays) * 7;
+  // Divided by the days the window ACTUALLY covers, not the nominal 30: four
+  // days into a term, eight purchases is a rate of fourteen a week, and
+  // calling it two understates the habit the advice is asking them to change.
+  const observedDays = Math.max(1, Math.min(daysBetween(windowStart, today) + 1, burnWindowDays));
+  const purchasesPerWeek = (stats.count / observedDays) * 7;
   // How many of this category's purchases per week to drop to close the gap.
   const dropPerWeek = perPurchase > 0 ? Math.ceil((gapPerDay * 7) / perPurchase) : 0;
 

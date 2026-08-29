@@ -68,13 +68,36 @@ t("comfortable when the money clearly outlasts the term", () => {
 });
 
 t("tight sits between the two", () => {
-  // Tuned so the money lands a few days past term end.
+  // Tuned to land mid-band: at this rate the money outlasts the term by only
+  // a few days. (Was $63/day, which sat in the band only because the burn
+  // rate was overstated by the observedDays off-by-one — see the burn-rate
+  // test below.)
   const txns = [
     tx("2026-08-20", 8400, "Other", "income"),
-    ...daily("2026-08-20", "2026-10-15", 63),
+    ...daily("2026-08-20", "2026-10-15", 67),
   ];
   const r = computeRunway(txns, [], FALL_MID);
-  if (!["tight","short"].includes(r.status)) throw new Error(`status ${r.status} (slack ${r.slackDays})`);
+  if (r.status !== "tight") throw new Error(`status ${r.status} (slack ${r.slackDays})`);
+});
+
+t("burn rate equals the actual daily spend, with no off-by-one", () => {
+  // The divisor is the number of days the window COVERS, counting both ends.
+  // Dividing an inclusive N-day window by N-1 overstated every burn rate —
+  // mildly over 30 days, 2x on day two of a term, which is when a student is
+  // most likely to be looking.
+  for (const rate of [20, 45, 67]) {
+    const txns = [tx("2026-08-20", 8400, "Other", "income"),
+                  ...daily("2026-08-20", "2026-10-15", rate)];
+    const r = computeRunway(txns, [], FALL_MID);
+    near(r.burnPerDay, rate, 0.01, `burn at $${rate}/day`);
+  }
+});
+
+t("a two-day-old term does not report double the real spend", () => {
+  const terms = [{ name:"Fall", start_date:"2026-08-24", end_date:"2026-12-19" }];
+  const txns = [tx("2026-08-24", 20, "Food"), tx("2026-08-25", 20, "Food")];
+  const r = computeRunway(txns, [], new Date(2026,7,25,12,0,0), { terms });
+  near(r.burnPerDay, 20, 0.01, "burn on day 2 of term");
 });
 
 console.log("\n=== where 'what's left' comes from ===");
@@ -150,8 +173,9 @@ t("a quarter/UK student gets THEIR term, not the US semester", () => {
   if (r.term.end !== "2026-12-11") throw new Error(`end ${r.term.end}`);
 });
 t("falls back to the built-in calendar when none are set", () => {
+  // end is the LAST DAY of the term (Dec 14), not the first day of Winter.
   const r = computeRunway([], [], new Date(2026,10,1), { terms: [] });
-  if (r.term.name !== "Fall" || r.term.end !== "2026-12-15") throw new Error(JSON.stringify(r.term));
+  if (r.term.name !== "Fall" || r.term.end !== "2026-12-14") throw new Error(JSON.stringify(r.term));
 });
 t("wrong term boundaries would change the allowance materially", () => {
   const txns = [tx("2026-10-06", 3000, "Other", "income"), ...daily("2026-10-06","2026-11-01",40)];

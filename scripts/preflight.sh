@@ -85,6 +85,12 @@ if (cd frontend && npm run build >/dev/null 2>&1); then ok "frontend builds"; el
 if (cd frontend && npm run smoke 2>/dev/null | grep -q "FAILED: 0"); then ok "render checks pass"; else bad "render checks FAIL"; fi
 if (cd frontend && node scripts/test-runway.mjs 2>/dev/null | grep -q "FAILED: 0"); then ok "runway model passes"; else bad "runway model FAILS"; fi
 if (cd frontend && node scripts/test-logic.mjs 2>/dev/null | grep -q "FAILED: 0"); then ok "frontend logic passes"; else bad "frontend logic FAILS"; fi
+if (cd frontend && node scripts/test-audit.mjs 2>/dev/null | grep -q "FAILED: 0"); then ok "audit checks pass"; else bad "audit checks FAIL"; fi
+# Run west of UTC as well: several date bugs are invisible in UTC and only
+# appear for the timezones this app's users actually live in.
+if (cd frontend && TZ=America/Los_Angeles node scripts/test-regressions.mjs 2>/dev/null | grep -q "FAILED: 0"); then
+  ok "audit regressions pass (incl. west-of-UTC dates)"
+else bad "audit regressions FAIL"; fi
 
 echo
 echo "─────────────────────────────────────────────────────────────────────────"

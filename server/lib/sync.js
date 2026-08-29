@@ -143,11 +143,15 @@ export async function syncItem(item) {
       );
     }
 
-    // Delete removed transactions (Plaid signals these explicitly)
+    // Delete removed transactions (Plaid signals these explicitly).
+    // Scoped to the item's own user like every other write in the app: Plaid
+    // transaction ids are globally unique, so this is defence in depth rather
+    // than a live hole, but it was the one statement in the codebase that
+    // could touch another account's row if that assumption ever broke.
     for (const txn of removed) {
       await client.query(
-        "DELETE FROM transactions WHERE plaid_transaction_id = $1",
-        [txn.transaction_id]
+        "DELETE FROM transactions WHERE plaid_transaction_id = $1 AND user_id = $2",
+        [txn.transaction_id, item.user_id]
       );
     }
 

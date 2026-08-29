@@ -37,6 +37,7 @@ import { Router } from "express";
 import { z }      from "zod";
 import { query }  from "../db/client.js";
 import { requireAuth, validateUUID } from "../middleware/auth.js";
+import { CATEGORY_PERIOD, VALID_CATEGORIES } from "../lib/categories.js";
 
 const router = Router();
 
@@ -109,23 +110,13 @@ function parseSemester(raw) {
   return match ? raw : semesterForDate().start;
 }
 
-// Which period each category naturally belongs to — must stay in sync with
-// CATEGORY_META's `period` field in frontend/src/App.jsx. This is the
-// server's authoritative answer to "is this category recurring or one-time,"
-// used by the budgets routes and manual-transaction validation below. A
-// category is NEVER stored under both periods — a recurring category's one
-// stored number is its monthly rate; a one-time category's one stored
-// number is its flat semester total. Deriving one view's number from the
-// other is a frontend display concern (see displayBudget() in App.jsx),
-// not a storage concern.
-const CATEGORY_PERIOD = {
-  Housing: "monthly", Food: "monthly", Transport: "monthly", Health: "monthly",
-  Shopping: "monthly", Entertainment: "monthly", Savings: "monthly", Other: "monthly",
-  Tuition: "semester", HousingDeposit: "semester", HealthInsurance: "semester",
-  BooksSupplies: "semester", Moving: "semester",
-};
-
-const VALID_CATEGORIES = Object.keys(CATEGORY_PERIOD);
+// Which period each category naturally belongs to — see lib/categories.js,
+// which is shared with routes/rewards.js so the two can't drift. A category
+// is NEVER stored under both periods: a recurring category's one stored
+// number is its monthly rate; a one-time category's one stored number is its
+// flat semester total. Deriving one view's number from the other is a
+// frontend display concern (see displayBudget() in Budget.jsx), not a
+// storage concern.
 
 // ─── Input schemas ────────────────────────────────────────────────────────────
 
@@ -133,7 +124,16 @@ const VALID_CATEGORIES = Object.keys(CATEGORY_PERIOD);
 // never be met, and the UI computes "days left" and a required monthly
 // contribution from it, both of which are nonsense for a past date.
 const MAX_YEARS_AHEAD = 50;
-const notInThePast = (d) => !d || d >= new Date().toISOString().slice(0, 10);
+// One day of slack, for the same reason withinReason() below allows tomorrow:
+// the server has no idea what timezone the user is in, and "today" in UTC is
+// already yesterday for anyone west of it. Comparing strictly rejected a
+// deadline of *today* for a US user any evening after 5pm — a valid date the
+// date-picker had just offered them.
+const notInThePast = (d) => {
+  if (!d) return true;
+  const floor = new Date(); floor.setUTCDate(floor.getUTCDate() - 1);
+  return d >= floor.toISOString().slice(0, 10);
+};
 const withinHorizon = (d) => {
   if (!d) return true;
   const limit = new Date(); limit.setFullYear(limit.getFullYear() + MAX_YEARS_AHEAD);
@@ -175,7 +175,13 @@ router.get("/goals", async (req, res, next) => {
   try {
     const { rows } = await query(
       `SELECT
-         id, name, emoji, target, saved, deadline,
+         id, name, emoji, target, saved,
+         -- TO_CHAR, not the hydrated DATE: node-postgres builds a Date at
+         -- LOCAL midnight, so .toISOString() lands on the previous day on any
+         -- server east of UTC. Same reason as routes/plaid.js and
+         -- routes/calendar.js.
+         CASE WHEN deadline IS NULL THEN NULL
+              ELSE TO_CHAR(deadline, 'YYYY-MM-DD') END AS deadline,
          created_at, updated_at
        FROM user_goals
        WHERE user_id = $1
@@ -185,9 +191,8 @@ router.get("/goals", async (req, res, next) => {
     // Coerce numeric strings from Postgres into JS numbers
     const goals = rows.map(g => ({
       ...g,
-      target:  Number(g.target),
-      saved:   Number(g.saved),
-      deadline: g.deadline ? g.deadline.toISOString().split("T")[0] : null,
+      target: Number(g.target),
+      saved:  Number(g.saved),
     }));
     return res.json({ goals });
   } catch (err) {
@@ -447,7 +452,8 @@ router.post("/transactions", async (req, res, next) => {
       `INSERT INTO transactions
          (user_id, amount, description, category, date, source)
        VALUES ($1, $2, $3, $4, $5, 'manual')
-       RETURNING id, amount, description AS desc, category, date, source, created_at`,
+       RETURNING id, amount, description AS desc, category,
+                 TO_CHAR(date, 'YYYY-MM-DD') AS date, source, created_at`,
       [req.userId, signedAmount, desc, category, date]
     );
 
@@ -457,7 +463,7 @@ router.post("/transactions", async (req, res, next) => {
         id:       t.id,
         desc:     t.desc,
         category: t.category,
-        date:     t.date.toISOString().split("T")[0],
+        date:     t.date,
         type:     Number(t.amount) < 0 ? "income" : "expense",
         amount:   Math.abs(Number(t.amount)),
         source:   t.source,
@@ -517,7 +523,8 @@ router.put("/transactions/:id", validateUUID("id"), async (req, res, next) => {
       `UPDATE transactions
        SET ${sets.join(", ")}, updated_at = NOW()
        WHERE id = $${params.length - 1} AND user_id = $${params.length} AND source = 'manual'
-       RETURNING id, amount, description AS desc, category, date, source`,
+       RETURNING id, amount, description AS desc, category,
+                 TO_CHAR(date, 'YYYY-MM-DD') AS date, source`,
       params
     );
 
@@ -527,7 +534,7 @@ router.put("/transactions/:id", validateUUID("id"), async (req, res, next) => {
         id:       t.id,
         desc:     t.desc,
         category: t.category,
-        date:     t.date.toISOString().split("T")[0],
+        date:     t.date,
         type:     Number(t.amount) < 0 ? "income" : "expense",
         amount:   Math.abs(Number(t.amount)),
         source:   t.source,

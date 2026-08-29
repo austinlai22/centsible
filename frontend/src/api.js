@@ -36,6 +36,33 @@ if (!import.meta.env?.VITE_API_URL && import.meta.env?.PROD) {
 let isRefreshing = false;          // prevent concurrent refresh loops
 let refreshQueue = [];             // requests waiting on a refresh
 
+/**
+ * Endpoints where a 401 is an ANSWER, not an expired session.
+ *
+ * "Wrong password" and "wrong 2FA code" are both 401s, and the refresh
+ * interceptor below used to treat them like any other: it fired a doomed
+ * POST /auth/refresh (there is no session to refresh — the user is trying to
+ * create one) and then replaced the server's real message with "Session
+ * expired — please log in again."
+ *
+ * Measured: typing a wrong password showed "Session expired — please log in
+ * again", which tells the user to do the exact thing they were already doing
+ * and never mentions the password. A wrong 2FA code did the same, discarding
+ * the attemptsRemaining count the server sends and the distinct "you've
+ * already used that code" message that stops someone re-scanning a QR they
+ * didn't need to.
+ *
+ * /auth/refresh itself is listed for the obvious reason: refreshing in
+ * response to a failed refresh is a loop.
+ */
+const NO_REFRESH_ON_401 = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/refresh",
+  "/auth/mfa/verify",
+];
+const skipsRefresh = (path) => NO_REFRESH_ON_401.some(p => path.split("?")[0] === p);
+
 async function coreFetch(path, options = {}, isRetry = false) {
   let res;
   try {
@@ -60,7 +87,7 @@ async function coreFetch(path, options = {}, isRetry = false) {
   }
 
   // ── Silent token refresh on 401 ──────────────────────────────────────────
-  if (res.status === 401 && !isRetry) {
+  if (res.status === 401 && !isRetry && !skipsRefresh(path)) {
     // If a refresh is already in flight, queue this request behind it
     if (isRefreshing) {
       return new Promise((resolve, reject) => {

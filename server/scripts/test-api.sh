@@ -1,6 +1,6 @@
 #!/bin/bash
 # End-to-end check of the fixed server flows.
-API=http://localhost:3999
+API=${API:-http://localhost:3999}
 J=/tmp/flow-cookies.txt
 rm -f $J
 EMAIL="e2e$(date +%s)@test.local"

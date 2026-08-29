@@ -1,5 +1,5 @@
 #!/bin/bash
-API=http://localhost:3999
+API=${API:-http://localhost:3999}
 pass=0; fail=0
 ck(){ if [ "$2" = "1" ]; then echo "  PASS  $1"; pass=$((pass+1)); else echo "  FAIL  $1"; echo "        $3"; fail=$((fail+1)); fi; }
 code(){ node -e "import('$PWD/lib/totp.js').then(t=>console.log(t.generate('$1')))"; }

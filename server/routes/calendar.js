@@ -22,7 +22,30 @@ const router = Router();
 router.use(requireAuth);
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
-const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : d);
+
+/**
+ * Every DATE column below is selected through TO_CHAR rather than hydrated
+ * into a JS Date and formatted here.
+ *
+ * node-postgres turns a DATE into a Date at LOCAL midnight, so
+ * `.toISOString()` re-reads it in UTC and lands on the previous day whenever
+ * the server clock is east of UTC. Verified against a real database: on
+ * TZ=Asia/Tokyo, `SELECT '2026-08-24'::date` came back as "2026-08-23".
+ * That would silently move every term boundary, aid date and goal deadline
+ * in the app by one day — and the runway is computed from exactly those
+ * boundaries. It is dormant only because the API happens to run in UTC
+ * today, which is a hosting detail, not a guarantee.
+ *
+ * routes/plaid.js already selects transaction dates this way; this makes the
+ * calendar agree.
+ */
+const DATE_COLS = `
+  TO_CHAR(start_date, 'YYYY-MM-DD') AS start_date,
+  TO_CHAR(end_date,   'YYYY-MM-DD') AS end_date`;
+const DISB_COLS = `
+  TO_CHAR(expected_on, 'YYYY-MM-DD') AS expected_on,
+  CASE WHEN received_on IS NULL THEN NULL
+       ELSE TO_CHAR(received_on, 'YYYY-MM-DD') END AS received_on`;
 
 // ─── Terms ────────────────────────────────────────────────────────────────────
 
@@ -42,13 +65,11 @@ const TermSchema = z.object({
 router.get("/terms", async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT id, name, start_date, end_date FROM user_terms
+      `SELECT id, name, ${DATE_COLS} FROM user_terms
         WHERE user_id = $1 ORDER BY start_date ASC`,
       [req.userId]
     );
-    return res.json({
-      terms: rows.map(r => ({ ...r, start_date: iso(r.start_date), end_date: iso(r.end_date) })),
-    });
+    return res.json({ terms: rows });
   } catch (err) { next(err); }
 });
 
@@ -74,11 +95,10 @@ router.post("/terms", async (req, res, next) => {
        VALUES ($1,$2,$3,$4)
        ON CONFLICT (user_id, start_date)
        DO UPDATE SET name = EXCLUDED.name, end_date = EXCLUDED.end_date, updated_at = NOW()
-       RETURNING id, name, start_date, end_date`,
+       RETURNING id, name, ${DATE_COLS}`,
       [req.userId, name, start_date, end_date]
     );
-    const t = rows[0];
-    return res.status(201).json({ term: { ...t, start_date: iso(t.start_date), end_date: iso(t.end_date) } });
+    return res.status(201).json({ term: rows[0] });
   } catch (err) { next(err); }
 });
 
@@ -100,12 +120,11 @@ router.put("/terms/:id", validateUUID("id"), async (req, res, next) => {
     const { rows } = await query(
       `UPDATE user_terms SET name=$1, start_date=$2, end_date=$3, updated_at=NOW()
         WHERE id=$4 AND user_id=$5
-        RETURNING id, name, start_date, end_date`,
+        RETURNING id, name, ${DATE_COLS}`,
       [name, start_date, end_date, req.params.id, req.userId]
     );
     if (!rows[0]) return res.status(404).json({ error: "Term not found" });
-    const t = rows[0];
-    return res.json({ term: { ...t, start_date: iso(t.start_date), end_date: iso(t.end_date) } });
+    return res.json({ term: rows[0] });
   } catch (err) { next(err); }
 });
 
@@ -132,17 +151,12 @@ const DisbursementSchema = z.object({
 router.get("/disbursements", async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT id, label, amount, expected_on, received_on
+      `SELECT id, label, amount, ${DISB_COLS}
          FROM user_disbursements WHERE user_id = $1 ORDER BY expected_on ASC`,
       [req.userId]
     );
     return res.json({
-      disbursements: rows.map(r => ({
-        ...r,
-        amount:      Number(r.amount),
-        expected_on: iso(r.expected_on),
-        received_on: r.received_on ? iso(r.received_on) : null,
-      })),
+      disbursements: rows.map(r => ({ ...r, amount: Number(r.amount) })),
     });
   } catch (err) { next(err); }
 });
@@ -155,13 +169,11 @@ router.post("/disbursements", async (req, res, next) => {
     const { rows } = await query(
       `INSERT INTO user_disbursements (user_id, label, amount, expected_on, received_on)
        VALUES ($1,$2,$3,$4,$5)
-       RETURNING id, label, amount, expected_on, received_on`,
+       RETURNING id, label, amount, ${DISB_COLS}`,
       [req.userId, label, amount, expected_on, received_on || null]
     );
-    const d = rows[0];
     return res.status(201).json({
-      disbursement: { ...d, amount: Number(d.amount), expected_on: iso(d.expected_on),
-                      received_on: d.received_on ? iso(d.received_on) : null },
+      disbursement: { ...rows[0], amount: Number(rows[0].amount) },
     });
   } catch (err) { next(err); }
 });
@@ -171,8 +183,11 @@ router.put("/disbursements/:id", validateUUID("id"), async (req, res, next) => {
     const parsed = DisbursementSchema.partial().safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0].message });
 
+    // Dates read back as strings here too — a partial update carries the
+    // untouched ones straight back into the UPDATE below, so hydrating them
+    // into Dates would let the same one-day drift write itself into storage.
     const existing = await query(
-      "SELECT * FROM user_disbursements WHERE id=$1 AND user_id=$2",
+      `SELECT label, amount, ${DISB_COLS} FROM user_disbursements WHERE id=$1 AND user_id=$2`,
       [req.params.id, req.userId]
     );
     if (!existing.rows[0]) return res.status(404).json({ error: "Disbursement not found" });
@@ -180,22 +195,20 @@ router.put("/disbursements/:id", validateUUID("id"), async (req, res, next) => {
     const next_ = {
       label:       parsed.data.label       ?? cur.label,
       amount:      parsed.data.amount      ?? Number(cur.amount),
-      expected_on: parsed.data.expected_on ?? iso(cur.expected_on),
+      expected_on: parsed.data.expected_on ?? cur.expected_on,
       received_on: "received_on" in parsed.data
         ? parsed.data.received_on
-        : (cur.received_on ? iso(cur.received_on) : null),
+        : cur.received_on,
     };
 
     const { rows } = await query(
       `UPDATE user_disbursements SET label=$1, amount=$2, expected_on=$3, received_on=$4, updated_at=NOW()
         WHERE id=$5 AND user_id=$6
-        RETURNING id, label, amount, expected_on, received_on`,
+        RETURNING id, label, amount, ${DISB_COLS}`,
       [next_.label, next_.amount, next_.expected_on, next_.received_on, req.params.id, req.userId]
     );
-    const d = rows[0];
     return res.json({
-      disbursement: { ...d, amount: Number(d.amount), expected_on: iso(d.expected_on),
-                      received_on: d.received_on ? iso(d.received_on) : null },
+      disbursement: { ...rows[0], amount: Number(rows[0].amount) },
     });
   } catch (err) { next(err); }
 });

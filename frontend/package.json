@@ -13,6 +13,9 @@
     "test:onboarding": "node scripts/test-onboarding.mjs",
     "preflight": "bash ../scripts/preflight.sh",
     "test:audit": "node scripts/test-audit.mjs",
+    "test:regressions": "node scripts/test-regressions.mjs",
+    "test:disbursement": "node scripts/test-disbursement-flow.mjs",
+    "test:pages": "node scripts/test-pages.mjs",
     "test:prod": "node scripts/test-prod-build.mjs"
   },
   "dependencies": {

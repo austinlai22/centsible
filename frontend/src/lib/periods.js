@@ -10,6 +10,7 @@
 
 import { CATEGORY_META, LEVELS } from "../constants.js";
 import { pct } from "./format.js";
+import { toLocalISO, daysBetween } from "./dates.js";
 
 /**
  * Is this category a movement between the user's own accounts rather than real
@@ -87,8 +88,15 @@ export function getLevelInfo(pts){
  */
 export function termForDate(date = new Date(), terms = null){
   if (Array.isArray(terms) && terms.length) {
-    const iso = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
-    const hit = terms.find(t => iso >= t.start_date && iso < t.end_date);
+    const iso = toLocalISO(date);
+    // end_date INCLUSIVE. The field is labelled "Term ends", so a student
+    // entering Dec 19 means Dec 19 is the last day of their term — not the
+    // day after it. Treating it as an exclusive boundary meant that on the
+    // final day of term their own calendar was declared exhausted: the card
+    // announced "your last term has ended" while they were still sitting in
+    // it, and every figure silently switched to the built-in US semester
+    // dates, which for a quarter-system student are not their term at all.
+    const hit = terms.find(t => iso >= t.start_date && iso <= t.end_date);
     if (hit) return { name: hit.name, start: hit.start_date, end: hit.end_date, source: "user" };
 
     // Between terms (a summer break, say) the nearest upcoming term is the
@@ -106,7 +114,15 @@ export function termForDate(date = new Date(), terms = null){
   return { ...semesterForDate(date), source: "default" };
 }
 
-/** Given a Date, returns { name, start, end } for the semester containing it. */
+/**
+ * Given a Date, returns { name, start, end } for the semester containing it.
+ *
+ * `end` is the semester's LAST DAY, matching the header comment's "Fall
+ * Aug 15 – Dec 14" and matching how a user's own term dates are stored. The
+ * boundaries below are still half-open internally (Fall ends where Winter
+ * begins); only the value handed out is converted, so that every term in the
+ * app — built-in or student-entered — means the same thing by "end".
+ */
 export function semesterForDate(date=new Date()){
   const y=date.getFullYear();
   const d=(yy,mm,dd)=>new Date(yy,mm-1,dd);
@@ -120,7 +136,10 @@ export function semesterForDate(date=new Date()){
     {name:"Fall",   start:d(y,8,15),    end:d(y,12,15)},
   ];
   const chosen=bounds.find(b=>date>=b.start&&date<b.end)||bounds[bounds.length-1];
-  return {name:chosen.name,start:iso(chosen.start),end:iso(chosen.end)};
+  // Step back one day so `end` is the last day IN the semester rather than the
+  // first day of the next one.
+  const lastDay=new Date(chosen.end.getFullYear(),chosen.end.getMonth(),chosen.end.getDate()-1);
+  return {name:chosen.name,start:iso(chosen.start),end:iso(lastDay)};
 }
 
 /**
@@ -131,8 +150,11 @@ export function semesterForDate(date=new Date()){
  */
 export function shiftSemester(refDate, direction, terms=null){
   const cur = termForDate(refDate, terms);
-  const boundary = direction>0 ? new Date(cur.end+"T12:00:00") : new Date(cur.start+"T12:00:00");
-  const landing = new Date(boundary.getTime() + direction*86400000);
+  const edge = direction>0 ? cur.end : cur.start;
+  const [y,m,d] = edge.split("-").map(Number);
+  // One day past the current term's own edge. `end` is the last day IN the
+  // term, so +1 lands on the first day of whatever follows.
+  const landing = new Date(y, m-1, d + direction, 12, 0, 0);
   return termForDate(landing, terms);
 }
 
@@ -157,9 +179,9 @@ export function shiftMonth(refDate, direction){
  */
 export function semesterMonthCount(refDate=new Date(), terms=null){
   const sem=termForDate(refDate, terms);
-  const start=new Date(sem.start+"T00:00:00");
-  const end=new Date(sem.end+"T00:00:00");
-  return ((end-start)/86400000)/30.44;
+  // +1 because `end` is the last day of the term, not the boundary after it —
+  // a term running the 1st to the 30th is 30 days long, not 29.
+  return (daysBetween(sem.start, sem.end) + 1)/30.44;
 }
 
 /**
@@ -189,10 +211,14 @@ export function catSpendMap(transactions, activeView="monthly", refDate=new Date
     .forEach(t=>{
       const catPeriod=CATEGORY_META[t.category]?.period||"monthly";
       const useSemesterWindow = catPeriod==="semester" || activeView==="semester";
-      const start = useSemesterWindow ? sem.start : monthStart;
-      const end   = useSemesterWindow ? sem.end   : monthEnd;
       const date  = String(t.date||"").slice(0,10);
-      if(date>=start && date<end){
+      // The month window ends on an exclusive boundary (the 1st of the next
+      // month); a term's `end` is its last day, so it's inclusive. Spending
+      // them the same way drops every purchase made on the final day of term.
+      const inWindow = useSemesterWindow
+        ? (date>=sem.start && date<=sem.end)
+        : (date>=monthStart && date<monthEnd);
+      if(inWindow){
         m[t.category]=(m[t.category]||0)+Number(t.amount);
       }
     });

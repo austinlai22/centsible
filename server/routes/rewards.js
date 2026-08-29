@@ -23,6 +23,7 @@ import { Router } from "express";
 import { z }      from "zod";
 import { query, pool } from "../db/client.js";
 import { requireAuth } from "../middleware/auth.js";
+import { NON_MONTHLY_CATEGORIES } from "../lib/categories.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -101,16 +102,20 @@ const EARN_ACTIONS = {
   hit_savings_rate: {
     points: 50,
     async verify(userId, periodKey) {
-      // Savings-category rows are transfers between the user's own accounts,
-      // so they are excluded from both sides — exactly as the client does.
+      // Must exclude exactly what periodTotals() excludes on the client, or
+      // the app contradicts itself out loud: with one $9,000 tuition bill on
+      // a $2,000 month, the Summary read "85% saved" while this check
+      // answered "Savings rate is -365% — the target is 20%". A once-a-term
+      // lump sum says nothing about the month-to-month habit this reward is
+      // for, which is why neither side counts it.
       const { rows } = await query(
         `SELECT COALESCE(SUM(CASE WHEN amount < 0 THEN -amount END),0) AS income,
                 COALESCE(SUM(CASE WHEN amount > 0 THEN  amount END),0) AS spent
            FROM transactions
           WHERE user_id = $1
             AND to_char(date,'YYYY-MM') = $2
-            AND category IS DISTINCT FROM 'Savings'`,
-        [userId, periodKey]
+            AND NOT (COALESCE(category,'Other') = ANY($3))`,
+        [userId, periodKey, NON_MONTHLY_CATEGORIES]
       );
       const { income, spent } = rows[0];
       if (Number(income) <= 0) return "No income recorded this month yet.";
