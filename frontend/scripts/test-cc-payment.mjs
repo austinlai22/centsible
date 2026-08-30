@@ -6,7 +6,11 @@
  */
 import { chromium } from "playwright";
 
-const API = "http://localhost:3556";
+// 3001 — the port in server/.env, server/index.js's default, and every other
+// suite in this folder. This read 3556 from the commit that introduced the
+// file, which no server here has ever listened on, so the seed step below
+// could only ever fail to connect.
+const API = "http://localhost:3001";
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 1280, height: 900 } });
 const email = `ccui${Date.now()}@t.local`;
