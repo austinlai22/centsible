@@ -349,6 +349,37 @@ export const CSS = `
   }
   .lp-footer-link:hover{color:var(--hero-accent)}
 
+  /* ── Scroll reveal ─────────────────────────────────────────────────────
+     Content rises into place as it enters the viewport. See lib/reveal.js
+     for the observer; this is only the two states it toggles between.
+
+     Only opacity and transform are animated — both are compositor
+     properties, so a page with thirty of these still scrolls at frame rate.
+     Animating height, top or margin here would force layout on every frame
+     of every reveal. No will-change: it would promote every pending element
+     to its own compositor layer at once, which costs more on a phone than
+     the transition it is meant to optimise.
+
+     The distance is 22px, not the 60-80px a dramatic version would use. At
+     this length the movement reads as the content settling; much further and
+     every section becomes something the reader has to wait for. */
+  .lp-reveal{opacity:0;transform:translateY(22px)}
+  .lp-reveal-in{
+    opacity:1;transform:none;
+    transition:opacity .6s cubic-bezier(.22,.61,.36,1), transform .6s cubic-bezier(.22,.61,.36,1);
+  }
+
+  /* Reduced motion gets no motion — not faster motion. The global rule at
+     the end of this stylesheet collapses transition-duration to ~0, which
+     would leave these elements starting at opacity 0 and snapping in only
+     once scrolled to: the content becomes conditional on scrolling, which
+     is a worse barrier than the animation. Here they are simply present.
+     .lp-reveal (0,1,0) outranks that rule's * (0,0,0), so this wins on
+     specificity regardless of source order. */
+  @media (prefers-reduced-motion:reduce){
+    .lp-reveal,.lp-reveal-in{opacity:1!important;transform:none!important;transition:none!important}
+  }
+
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
   }

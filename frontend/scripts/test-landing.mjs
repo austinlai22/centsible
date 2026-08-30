@@ -178,6 +178,66 @@ await page.getByRole("contentinfo").getByRole("button", { name: /privacy policy/
 await page.waitForTimeout(400);
 ck("the Privacy modal opens from the footer", await page.getByRole("dialog", { name: /privacy policy/i }).isVisible().catch(() => false));
 
+console.log("\n=== scroll reveal ===");
+{
+  const r = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  r.on("pageerror", e => errors.push("reveal: " + e.message));
+  await r.goto(APP + "/", { waitUntil: "networkidle" });
+  await r.waitForTimeout(900);   // the hero's own reveal has finished by now
+
+  const opacityOf = (sel, nth = 0) => r.evaluate(([s, n]) => {
+    const el = document.querySelectorAll(s)[n];
+    return el ? Number(getComputedStyle(el).opacity) : -1;
+  }, [sel, nth]);
+
+  ck("the hero is revealed on load, without needing a scroll",
+     (await opacityOf(".lp-h1")) > 0.95);
+
+  // The FAQ block is far below the fold on a 900px viewport.
+  const faqSel = "details.lp-faq";
+  const before = await opacityOf(faqSel, 0);
+  ck("content below the fold starts hidden", before < 0.1, `opacity ${before}`);
+
+  await r.locator(faqSel).first().scrollIntoViewIfNeeded();
+  await r.waitForTimeout(1100);   // 600ms transition + the longest stagger
+  const after = await opacityOf(faqSel, 0);
+  ck("and reveals once scrolled to", after > 0.95, `opacity ${after}`);
+
+  // One-way: scrolling back up must not re-hide what was already read.
+  await r.evaluate(() => window.scrollTo(0, 0));
+  await r.waitForTimeout(700);
+  ck("and stays revealed when you scroll back up", (await opacityOf(faqSel, 0)) > 0.95);
+
+  // Nothing may be left permanently invisible: every revealed element must
+  // end up opaque once the whole page has been scrolled through. This is the
+  // check that catches an observer that silently never fires.
+  await r.evaluate(async () => {
+    for (let y = 0; y < document.body.scrollHeight; y += 400) {
+      window.scrollTo(0, y);
+      await new Promise(res => setTimeout(res, 60));
+    }
+  });
+  await r.waitForTimeout(1200);
+  const stuck = await r.evaluate(() =>
+    [...document.querySelectorAll(".lp-reveal")].filter(el => Number(getComputedStyle(el).opacity) < 0.95).length);
+  const total = await r.evaluate(() => document.querySelectorAll(".lp-reveal").length);
+  ck(`all ${total} revealed elements end up visible`, stuck === 0, `${stuck} still hidden`);
+  await r.close();
+}
+
+// The preference exists to remove the barrier, not to speed it up: under
+// reduced motion the content must be present without any scrolling at all.
+{
+  const rm = await browser.newPage({ viewport: { width: 1280, height: 900 }, reducedMotion: "reduce" });
+  rm.on("pageerror", e => errors.push("reduced-motion: " + e.message));
+  await rm.goto(APP + "/", { waitUntil: "networkidle" });
+  await rm.waitForTimeout(400);
+  const hidden = await rm.evaluate(() =>
+    [...document.querySelectorAll(".lp-reveal")].filter(el => Number(getComputedStyle(el).opacity) < 0.95).length);
+  ck("with prefers-reduced-motion, nothing is hidden at all", hidden === 0, `${hidden} hidden`);
+  await rm.close();
+}
+
 console.log("\n=== mobile ===");
 const m = await browser.newPage({ viewport: { width: 390, height: 844 } });
 m.on("pageerror", e => errors.push("mobile: " + e.message));

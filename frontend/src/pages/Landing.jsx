@@ -3,6 +3,8 @@ import { S } from "../styles.js";
 import { Brand } from "../components/Brand.jsx";
 import { TermsModal } from "../components/TermsModal.jsx";
 import { PrivacyModal } from "../components/PrivacyModal.jsx";
+import { Reveal } from "../components/Reveal.jsx";
+import { stagger } from "../lib/reveal.js";
 
 /**
  * Landing.jsx — the public marketing page, and the first thing a signed-out
@@ -316,45 +318,49 @@ export function Landing({ onLogin, onSignup, onOpenApp, signedIn = false, authRe
         <div className="lp-wrap lp-band">
           <div className="lp-hero-grid">
             <div>
-              <Eyebrow on="dark">For students living term to term</Eyebrow>
+              {/* The hero is already in view on load, so its observer fires
+                  on the first frame — the reveal reads as the page arriving
+                  rather than as a scroll effect. Same mechanism, no special
+                  case for above-the-fold. */}
+              <Reveal><Eyebrow on="dark">For students living term to term</Eyebrow></Reveal>
               {/* The space before <br /> is load-bearing: a <br> contributes
                   nothing to textContent, so without it the heading reads as
                   "Make your moneylast the term." to anything matching on text
                   — screen readers, in-page find, and the production smoke
                   test, which asserts on exactly this string. */}
-              <h1 className="lp-h1">
+              <Reveal as="h1" className="lp-h1" delay={70}>
                 Make your money <br />last the term.
-              </h1>
-              <p className="lp-lead" style={{ color: "var(--hero-muted)", marginTop: 20, maxWidth: 520 }}>
+              </Reveal>
+              <Reveal as="p" className="lp-lead" delay={140} style={{ color: "var(--hero-muted)", marginTop: 20, maxWidth: 520 }}>
                 Most budgeting apps assume a paycheck every month. Centsible assumes what you
                 actually get — one disbursement, then a long gap. It tells you how many days of
                 money you have left, and the date it runs out.
-              </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 30 }}>
+              </Reveal>
+              <Reveal delay={210} style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 30 }}>
                 <button type="button" className="lp-btn lp-btn-lg lp-btn-accent" onClick={primaryAction}>
                   {primaryLabel}
                 </button>
                 <a className="lp-btn lp-btn-lg lp-btn-ghost" href="#how">See how it works</a>
-              </div>
-              <p style={{ fontSize: 13, color: "var(--hero-muted)", marginTop: 20 }}>
+              </Reveal>
+              <Reveal as="p" delay={260} style={{ fontSize: 13, color: "var(--hero-muted)", marginTop: 20 }}>
                 Free · No ads · No card required · We never sell your data
-              </p>
+              </Reveal>
             </div>
-            <div className="fade-in"><RunwayMock /></div>
+            <Reveal delay={180}><RunwayMock /></Reveal>
           </div>
         </div>
       </section>
 
       {/* ── The problem ─────────────────────────────────────────────────── */}
       <section className="lp-wrap lp-band">
-        <div style={{ maxWidth: 720 }}>
+        <Reveal style={{ maxWidth: 720 }}>
           <Eyebrow>The problem</Eyebrow>
           <h2 className="lp-h2">
             A monthly savings rate can't answer the question you actually have.
           </h2>
-        </div>
+        </Reveal>
         <div className="lp-grid-2" style={{ marginTop: 34 }}>
-          <div className="lp-card" style={{ background: "var(--bg)" }}>
+          <Reveal className="lp-card" style={{ background: "var(--bg)" }}>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 12 }}>
               What most apps measure
             </p>
@@ -364,8 +370,8 @@ export function Landing({ onLogin, onSignup, onOpenApp, signedIn = false, authRe
               money landed and then goes blank for the next four — measuring something that
               isn't happening, in a rhythm your money doesn't have.
             </p>
-          </div>
-          <div className="lp-card" style={{ borderColor: "var(--primary)", borderWidth: 1, boxShadow: "var(--shadow-md)" }}>
+          </Reveal>
+          <Reveal className="lp-card" delay={90} style={{ borderColor: "var(--primary)", borderWidth: 1, boxShadow: "var(--shadow-md)" }}>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--primary)", marginBottom: 12 }}>
               What Centsible measures
             </p>
@@ -375,28 +381,28 @@ export function Landing({ onLogin, onSignup, onOpenApp, signedIn = false, authRe
               deadline you actually live against, which is the day the aid runs out, not the
               last day of a calendar month.
             </p>
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* ── What it does ────────────────────────────────────────────────── */}
       <section id="what" className="lp-anchor lp-tint">
         <div className="lp-wrap lp-band">
-          <div style={{ maxWidth: 680 }}>
+          <Reveal style={{ maxWidth: 680 }}>
             <Eyebrow>What it does</Eyebrow>
             <h2 className="lp-h2">Built around a term, not a month.</h2>
             <p className="lp-lead" style={{ color: "var(--muted)", marginTop: 16 }}>
               Every part of the app assumes money arrives in lumps and has to stretch. That one
               assumption changes what's worth showing you.
             </p>
-          </div>
+          </Reveal>
           <div className="lp-grid-3" style={{ marginTop: 36 }}>
-            {FEATURES.map(f => (
-              <div key={f.title} className="lp-card lp-card-hover">
+            {FEATURES.map((f, i) => (
+              <Reveal key={f.title} className="lp-card lp-card-hover" delay={stagger(i)}>
                 <div style={{ ...S.iconBox("var(--primary-bg)", 44), marginBottom: 16, fontSize: 21 }}>{f.icon}</div>
                 <p className="lp-h3" style={{ marginBottom: 9 }}>{f.title}</p>
                 <p style={{ fontSize: 14.5, color: "var(--muted)", lineHeight: 1.68 }}>{f.body}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -405,72 +411,72 @@ export function Landing({ onLogin, onSignup, onOpenApp, signedIn = false, authRe
       {/* ── The outcome ─────────────────────────────────────────────────── */}
       <section className="lp-dark">
         <div className="lp-wrap lp-band">
-          <div style={{ maxWidth: 720 }}>
+          <Reveal style={{ maxWidth: 720 }}>
             <Eyebrow on="dark">The outcome</Eyebrow>
             <h2 className="lp-h2">Three numbers, and one thing to do about them.</h2>
             <p className="lp-lead" style={{ color: "var(--hero-muted)", marginTop: 16 }}>
               You don't open a budgeting app to admire a chart. You open it to find out whether
               you're fine — and if you aren't, what to change.
             </p>
-          </div>
+          </Reveal>
           <div className="lp-grid-3" style={{ marginTop: 36 }}>
             {OUTCOMES.map((o, i) => (
-              <div key={o.label} className="lp-card-dark">
+              <Reveal key={o.label} className="lp-card-dark" delay={stagger(i)}>
                 <p className="tnum" style={{ ...S.display, fontSize: 30, fontWeight: 800, color: "var(--hero-accent)", lineHeight: 1 }}>
                   {String(i + 1).padStart(2, "0")}
                 </p>
                 <p className="lp-h3" style={{ color: "var(--hero-ink)", margin: "14px 0 9px" }}>{o.label}</p>
                 <p style={{ fontSize: 14.5, color: "var(--hero-muted)", lineHeight: 1.68 }}>{o.body}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
-          <p style={{ fontSize: 15, color: "var(--hero-muted)", lineHeight: 1.7, marginTop: 28, maxWidth: 720 }}>
+          <Reveal as="p" style={{ fontSize: 15, color: "var(--hero-muted)", lineHeight: 1.7, marginTop: 28, maxWidth: 720 }}>
             And when there isn't enough history to say any of that honestly, Centsible says so
             rather than guessing. A confident number built on four transactions is worse than
             no number at all.
-          </p>
+          </Reveal>
         </div>
       </section>
 
       {/* ── How it works ────────────────────────────────────────────────── */}
       <section id="how" className="lp-anchor lp-wrap lp-band">
-        <div style={{ maxWidth: 680 }}>
+        <Reveal style={{ maxWidth: 680 }}>
           <Eyebrow>How it works</Eyebrow>
           <h2 className="lp-h2">Three steps, about two minutes.</h2>
-        </div>
+        </Reveal>
         <div className="lp-grid-3" style={{ marginTop: 36 }}>
-          {STEPS.map(s => (
-            <div key={s.n}>
+          {STEPS.map((s, i) => (
+            <Reveal key={s.n} delay={stagger(i, 90)}>
               <p className="tnum" style={{ ...S.display, fontSize: 15, fontWeight: 800, color: "var(--primary)", letterSpacing: ".06em" }}>
                 {s.n}
               </p>
               <div style={{ height: 2, background: "var(--primary-bg)", margin: "12px 0 18px", borderRadius: 2 }} />
               <p className="lp-h3" style={{ marginBottom: 9 }}>{s.title}</p>
               <p style={{ fontSize: 15, color: "var(--muted)", lineHeight: 1.7 }}>{s.body}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
-        <div style={{ marginTop: 40 }}>
+        <Reveal style={{ marginTop: 40 }}>
           <button type="button" className="lp-btn lp-btn-lg lp-btn-primary" onClick={primaryAction}>
             {signedIn ? "Open Centsible →" : "Start now — it's free →"}
           </button>
-        </div>
+        </Reveal>
       </section>
 
       {/* ── Pricing ─────────────────────────────────────────────────────── */}
       <section id="pricing" className="lp-anchor lp-tint">
         <div className="lp-wrap lp-band">
-          <div style={{ maxWidth: 680 }}>
+          <Reveal style={{ maxWidth: 680 }}>
             <Eyebrow>Pricing</Eyebrow>
             <h2 className="lp-h2">Free. The whole thing.</h2>
             <p className="lp-lead" style={{ color: "var(--muted)", marginTop: 16 }}>
               Not a free tier with the useful half removed. There is one version of Centsible
               and this is it.
             </p>
-          </div>
+          </Reveal>
 
           <div className="lp-grid-2" style={{ marginTop: 36, alignItems: "stretch" }}>
-            <div className="lp-card" style={{ boxShadow: "var(--shadow-md)", borderColor: "var(--primary)", padding: 30 }}>
+            <Reveal className="lp-card" style={{ boxShadow: "var(--shadow-md)", borderColor: "var(--primary)", padding: 30 }}>
               <div style={{ ...S.row, alignItems: "baseline", gap: 8 }}>
                 <span className="tnum" style={{ ...S.display, fontSize: 52, fontWeight: 800, color: "var(--ink)", letterSpacing: "-.04em" }}>$0</span>
                 <span style={{ fontSize: 16, color: "var(--muted)", fontWeight: 500 }}>/ forever</span>
@@ -484,9 +490,9 @@ export function Landing({ onLogin, onSignup, onOpenApp, signedIn = false, authRe
               <button type="button" className="lp-btn lp-btn-lg lp-btn-primary" style={{ width: "100%" }} onClick={primaryAction}>
                 {signedIn ? "Open Centsible →" : "Create your account →"}
               </button>
-            </div>
+            </Reveal>
 
-            <div className="lp-card" style={{ background: "var(--surface)", padding: 30, display: "flex", flexDirection: "column" }}>
+            <Reveal className="lp-card" delay={90} style={{ background: "var(--surface)", padding: 30, display: "flex", flexDirection: "column" }}>
               <p className="lp-h3" style={{ marginBottom: 14 }}>Why it's free — and what that means</p>
               <p style={{ fontSize: 15, color: "var(--muted)", lineHeight: 1.72 }}>
                 Budgeting apps usually make money three ways: a subscription, ads, or selling
@@ -506,50 +512,53 @@ export function Landing({ onLogin, onSignup, onOpenApp, signedIn = false, authRe
                   Read the Terms →
                 </button>
               </div>
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
 
       {/* ── Trust ───────────────────────────────────────────────────────── */}
       <section className="lp-wrap lp-band">
-        <div style={{ maxWidth: 680 }}>
+        <Reveal style={{ maxWidth: 680 }}>
           <Eyebrow>Privacy &amp; security</Eyebrow>
           <h2 className="lp-h2">It's your money. It stays your data.</h2>
-        </div>
+        </Reveal>
         <div className="lp-grid-2" style={{ marginTop: 34 }}>
-          {TRUST.map(t => (
-            <div key={t.title} style={{ ...S.row, gap: 16, alignItems: "flex-start" }}>
+          {TRUST.map((t, i) => (
+            <Reveal key={t.title} delay={stagger(i)} style={{ ...S.row, gap: 16, alignItems: "flex-start" }}>
               <div style={{ ...S.iconBox("var(--primary-bg)", 42), fontSize: 19 }}>{t.icon}</div>
               <div style={{ minWidth: 0 }}>
                 <p style={{ fontSize: 15.5, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>{t.title}</p>
                 <p style={{ fontSize: 14.5, color: "var(--muted)", lineHeight: 1.68 }}>{t.body}</p>
               </div>
-            </div>
+            </Reveal>
           ))}
         </div>
-        <p style={{ fontSize: 14, color: "var(--muted)", marginTop: 30 }}>
+        <Reveal as="p" style={{ fontSize: 14, color: "var(--muted)", marginTop: 30 }}>
           The full detail is in the{" "}
           <button type="button" onClick={() => setLegal("privacy")}
             style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--primary)", fontSize: 14, fontWeight: 600, textDecoration: "underline" }}>
             Privacy Policy
           </button>.
-        </p>
+        </Reveal>
       </section>
 
       {/* ── FAQ ─────────────────────────────────────────────────────────── */}
       <section id="faq" className="lp-anchor lp-tint">
         <div className="lp-wrap lp-band">
-          <div style={{ maxWidth: 680, marginBottom: 30 }}>
+          <Reveal style={{ maxWidth: 680, marginBottom: 30 }}>
             <Eyebrow>FAQ</Eyebrow>
             <h2 className="lp-h2">The questions worth answering upfront.</h2>
-          </div>
+          </Reveal>
+          {/* Revealed per row, but with a much shorter step than the card
+              grids: ten items at the usual 70ms would still be cascading
+              long after the reader has started reading the first one. */}
           <div style={{ maxWidth: 820 }}>
-            {FAQS.map(f => (
-              <details key={f.q} className="lp-faq">
+            {FAQS.map((f, i) => (
+              <Reveal as="details" key={f.q} className="lp-faq" delay={stagger(i, 35, 180)}>
                 <summary>{f.q}</summary>
                 <p className="lp-faq-body">{f.a}</p>
-              </details>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -558,13 +567,13 @@ export function Landing({ onLogin, onSignup, onOpenApp, signedIn = false, authRe
       {/* ── Closing CTA ─────────────────────────────────────────────────── */}
       <section className="lp-dark">
         <div className="lp-wrap lp-band" style={{ textAlign: "center" }}>
-          <h2 className="lp-h2" style={{ maxWidth: 640, margin: "0 auto" }}>
+          <Reveal as="h2" className="lp-h2" style={{ maxWidth: 640, margin: "0 auto" }}>
             Find out how long your money actually lasts.
-          </h2>
-          <p className="lp-lead" style={{ color: "var(--hero-muted)", marginTop: 16, maxWidth: 520, marginLeft: "auto", marginRight: "auto" }}>
+          </Reveal>
+          <Reveal as="p" className="lp-lead" delay={70} style={{ color: "var(--hero-muted)", marginTop: 16, maxWidth: 520, marginLeft: "auto", marginRight: "auto" }}>
             Two dates and a few days of spending is enough to get a real answer.
-          </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", marginTop: 28 }}>
+          </Reveal>
+          <Reveal delay={140} style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", marginTop: 28 }}>
             <button type="button" className="lp-btn lp-btn-lg lp-btn-accent" onClick={primaryAction}>
               {primaryLabel}
             </button>
@@ -575,7 +584,7 @@ export function Landing({ onLogin, onSignup, onOpenApp, signedIn = false, authRe
                 I already have one
               </button>
             )}
-          </div>
+          </Reveal>
         </div>
       </section>
 
