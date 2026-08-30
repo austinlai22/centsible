@@ -146,7 +146,37 @@ ck("the landing page paints before the session resolves",
    await slow.getByText(/make your money last the term/i).first().isVisible().catch(() => false));
 ck("and shows the signed-in button immediately, not a spinner",
    await slow.getByRole("banner").getByRole("button", { name: /open centsible/i }).isVisible().catch(() => false));
+
+// /app during that same slow session check. This is the screen the free
+// tier actually hurts: the session is a cold start of up to a minute, and a
+// bare wordmark on a dark panel for that long reads as a crashed site.
+await slow.goto(APP + "/app", { waitUntil: "domcontentloaded" });
+await slow.waitForTimeout(900);
+ck("/app shows the app's own chrome while the session loads",
+   await slow.getByRole("button", { name: /summary/i }).first().isVisible().catch(() => false));
+ck("with skeletons where the data goes, not a blank splash",
+   await slow.evaluate(() => !!document.querySelector('.content div[style*="shimmer"]')));
+// getLevelInfo(0) would render "Seedling · 0 pts", which is a real state a
+// real account can be in — a wrong number, not a placeholder.
+ck("and no invented points total in the top bar",
+   !/pts/i.test(await slow.evaluate(() => document.querySelector(".topbar button")?.innerText ?? "")));
 await slow.close();
+
+// The mirror case: someone with no hint is probably NOT signed in, and
+// dressing up a convincing empty dashboard for a minute before bouncing
+// them to the login form is a worse lie than showing nothing.
+{
+  const cold = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  cold.on("pageerror", e => errors.push("cold: " + e.message));
+  await mockSession(cold, { delayMs: 4000 });
+  await cold.goto(APP + "/", { waitUntil: "domcontentloaded" });
+  await cold.evaluate(() => localStorage.removeItem("centsible.session_hint"));
+  await cold.goto(APP + "/app", { waitUntil: "domcontentloaded" });
+  await cold.waitForTimeout(900);
+  ck("without a hint, /app shows the splash rather than a fake dashboard",
+     !(await cold.getByRole("button", { name: /summary/i }).first().isVisible().catch(() => false)));
+  await cold.close();
+}
 
 // The mirror image: a hint left behind by an expired session must not strand
 // anyone in an app they aren't authenticated for.

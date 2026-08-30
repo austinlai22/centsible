@@ -3,7 +3,7 @@ import { authApi, termsApi, disbursementsApi } from "./api.js";
 import { CSS, S } from "./styles.js";
 import { NAV } from "./constants.js";
 import { getLevelInfo, semesterForDate } from "./lib/periods.js";
-import { Sheet, PageFallback } from "./components/ui.jsx";
+import { Sheet, PageFallback, SkeletonBlock } from "./components/ui.jsx";
 import { Brand } from "./components/Brand.jsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.jsx";
 import { usePath, navigate, readSessionHint, writeSessionHint } from "./lib/router.js";
@@ -57,12 +57,95 @@ const RewardsSheet = lazy(() => import("./pages/Rewards.jsx").then(m => ({ defau
  */
 const ROUTES = { "/": "landing", "/login": "login", "/signup": "signup", "/app": "app" };
 
-/** The splash shown while the session resolves, and while a route chunk loads. */
+/** The splash, for the brief moments where there is genuinely nothing to draw. */
 const Splash = () => (
   <div style={{minHeight:"100dvh",background:"var(--hero)",display:"flex",alignItems:"center",justifyContent:"center"}}>
     <span style={{opacity:.6,color:"var(--hero-ink)"}}><Brand size={32} on="dark"/></span>
   </div>
 );
+
+/**
+ * The app chrome — sidebar, top bar, bottom tab bar — around whichever page
+ * is showing.
+ *
+ * Extracted so the loading state can render the SAME shell instead of
+ * replacing the entire screen with a splash. On free-tier hosting the
+ * session check is a cold start that can run to a minute, and a dark screen
+ * holding nothing but a wordmark for that long is indistinguishable from a
+ * site that has crashed — which is exactly what people assume. None of this
+ * furniture ever depended on the answer: the nav, the brand and the layout
+ * are knowable immediately, so they should be on screen immediately.
+ *
+ * `pending` means the session itself has not resolved, so the rewards pill
+ * has no value to show. It renders a skeleton rather than what
+ * getLevelInfo(0) would return — "🌱 Seedling · 0 pts" is a real state a real
+ * account can be in, so showing it to someone holding 400 points is not a
+ * placeholder, it is a wrong number. The nav stays live: picking a tab while
+ * the session loads is a preference the app can honour once it arrives.
+ */
+function AppShell({ tab, setTab, onRewards, level, points, pending = false, children }) {
+  return (
+    <div className="shell">
+
+      {/* Sidebar — tablet/desktop only; collapses to an icon rail 768–1023 */}
+      <nav className="sidebar" aria-label="Main">
+        <div style={{padding:"0 12px 20px"}}>
+          <span className="sidebar-brand-text"><Brand size={24}/></span>
+        </div>
+        {NAV.map(n=>(
+          <button key={n.id} className="sidebar-item" onClick={()=>setTab(n.id)}
+            aria-current={tab===n.id?"page":undefined} title={n.label}>
+            <span style={{fontSize:17,lineHeight:1}}>{n.icon}</span>
+            <span className="sidebar-label">{n.label}</span>
+          </button>
+        ))}
+        <div style={{marginTop:"auto"}}>
+          <button className="sidebar-item" onClick={onRewards} title="Rewards" disabled={pending}>
+            {pending ? <SkeletonBlock height={17} width={17} radius={5}/>
+                     : <span style={{fontSize:17,lineHeight:1}}>{level.icon}</span>}
+            <span className="sidebar-label">
+              {pending ? <SkeletonBlock height={11} width={54}/> : `${points} pts`}
+            </span>
+          </button>
+        </div>
+      </nav>
+
+      <div className="main">
+        <header className="topbar">
+          <span className="topbar-brand"><Brand/></span>
+          <span style={{fontSize:15,fontWeight:600,display:"none"}}/>
+          <button onClick={onRewards} disabled={pending}
+            style={{...S.row,gap:7,background:"var(--hero)",border:"none",borderRadius:20,padding:"7px 14px",cursor:pending?"default":"pointer",marginLeft:"auto",minHeight:38}}>
+            {pending ? (
+              /* Sized to roughly what the real pill occupies, so the top bar
+                 does not jump sideways the moment the session lands. */
+              <SkeletonBlock height={12} width={96} radius={6}/>
+            ) : (
+              <>
+                <span style={{fontSize:14}}>{level.icon}</span>
+                <span style={{fontSize:12,color:"var(--hero-ink)",fontWeight:500}}>{level.name}</span>
+                <span style={{fontSize:12,color:"var(--hero-accent)",fontWeight:700}}>{points} pts</span>
+              </>
+            )}
+          </button>
+        </header>
+
+        <main className="content">{children}</main>
+      </div>
+
+      {/* Bottom tab bar — phones only */}
+      <nav className="bottomnav" aria-label="Main">
+        {NAV.map(n=>(
+          <button key={n.id} className="bottomnav-item" onClick={()=>setTab(n.id)}
+            aria-current={tab===n.id?"page":undefined}>
+            <span style={{fontSize:16,color:tab===n.id?"var(--hero)":"var(--subtle)",transition:"color .15s"}}>{n.icon}</span>
+            <span style={{fontSize:9,fontWeight:tab===n.id?700:400,color:tab===n.id?"var(--hero)":"var(--subtle)",letterSpacing:".3px"}}>{n.label}</span>
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+}
 
 export default function App(){
   // authUser.onboarded_at (from the DB) is the single source of truth for
@@ -227,7 +310,26 @@ export default function App(){
 
   // From here down is /app, which the redirect effect guarantees is reached
   // only with a resolved, signed-in session.
-  if(!authReady || !authUser) return <><style>{CSS}</style><Splash/></>;
+  //
+  // While the session is still in flight, show the app's own furniture with
+  // skeletons in it rather than a splash — but only when the cached hint says
+  // this person is probably signed in. Without that check, someone who is NOT
+  // signed in would spend the whole cold start looking at a convincing empty
+  // dashboard before being bounced to the login form, which is a worse lie
+  // than a blank screen. The hint is wrong rarely and cheaply; see
+  // lib/router.js.
+  if(!authReady) return(
+    <>
+      <style>{CSS}</style>
+      {readSessionHint() ? (
+        <AppShell tab={tab} setTab={setTab} pending><PageFallback/></AppShell>
+      ) : <Splash/>}
+    </>
+  );
+
+  // Known signed out. The redirect effect is already sending them to /login,
+  // so this is a frame or two, not a screen anyone reads.
+  if(!authUser) return <><style>{CSS}</style><Splash/></>;
 
   if(!authUser.onboarded_at) return(
     <>
@@ -292,62 +394,16 @@ export default function App(){
   return(
     <>
       <style>{CSS}</style>
-      <div className="shell">
-
-        {/* Sidebar — tablet/desktop only; collapses to an icon rail 768–1023 */}
-        <nav className="sidebar" aria-label="Main">
-          <div style={{padding:"0 12px 20px"}}>
-            <span className="sidebar-brand-text"><Brand size={24}/></span>
-          </div>
-          {NAV.map(n=>(
-            <button key={n.id} className="sidebar-item" onClick={()=>setTab(n.id)}
-              aria-current={tab===n.id?"page":undefined} title={n.label}>
-              <span style={{fontSize:17,lineHeight:1}}>{n.icon}</span>
-              <span className="sidebar-label">{n.label}</span>
-            </button>
-          ))}
-          <div style={{marginTop:"auto"}}>
-            <button className="sidebar-item" onClick={()=>setShowRewards(true)} title="Rewards">
-              <span style={{fontSize:17,lineHeight:1}}>{lvl.icon}</span>
-              <span className="sidebar-label">{rewards.points} pts</span>
-            </button>
-          </div>
-        </nav>
-
-        <div className="main">
-          <header className="topbar">
-            <span className="topbar-brand"><Brand/></span>
-            <span style={{fontSize:15,fontWeight:600,display:"none"}}/>
-            <button onClick={()=>setShowRewards(true)}
-              style={{...S.row,gap:7,background:"var(--hero)",border:"none",borderRadius:20,padding:"7px 14px",cursor:"pointer",marginLeft:"auto",minHeight:38}}>
-              <span style={{fontSize:14}}>{lvl.icon}</span>
-              <span style={{fontSize:12,color:"var(--hero-ink)",fontWeight:500}}>{lvl.name}</span>
-              <span style={{fontSize:12,color:"var(--hero-accent)",fontWeight:700}}>{rewards.points} pts</span>
-            </button>
-          </header>
-
-          <main className="content">
-            {/* Keyed on the tab so switching away from a broken page clears
-                the error instead of showing it on the next one too. */}
-            <ErrorBoundary variant="page" key={tab}>
-              <Suspense fallback={<PageFallback/>}>
-                <Page/>
-              </Suspense>
-            </ErrorBoundary>
-          </main>
-        </div>
-
-        {/* Bottom tab bar — phones only */}
-        <nav className="bottomnav" aria-label="Main">
-          {NAV.map(n=>(
-            <button key={n.id} className="bottomnav-item" onClick={()=>setTab(n.id)}
-              aria-current={tab===n.id?"page":undefined}>
-              <span style={{fontSize:16,color:tab===n.id?"var(--hero)":"var(--subtle)",transition:"color .15s"}}>{n.icon}</span>
-              <span style={{fontSize:9,fontWeight:tab===n.id?700:400,color:tab===n.id?"var(--hero)":"var(--subtle)",letterSpacing:".3px"}}>{n.label}</span>
-            </button>
-          ))}
-        </nav>
-      </div>
+      <AppShell tab={tab} setTab={setTab} onRewards={()=>setShowRewards(true)}
+        level={lvl} points={rewards.points}>
+        {/* Keyed on the tab so switching away from a broken page clears
+            the error instead of showing it on the next one too. */}
+        <ErrorBoundary variant="page" key={tab}>
+          <Suspense fallback={<PageFallback/>}>
+            <Page/>
+          </Suspense>
+        </ErrorBoundary>
+      </AppShell>
 
       {showRewards&&(
         <Sheet title="Rewards" onClose={()=>setShowRewards(false)} zIndex={150}>
