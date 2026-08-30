@@ -18,17 +18,25 @@ const browser = await chromium.launch();
 
 async function capture(label, width, height) {
   const page = await browser.newPage({ viewport: { width, height } });
-  await page.goto("http://localhost:5173", { waitUntil: "networkidle" });
+
+  // The root URL is the landing page now, and it is a screen worth reviewing
+  // like any other — captured fullPage, since a marketing layout is the one
+  // thing here that a viewport-height crop tells you nothing about.
+  await page.goto("http://localhost:5173/", { waitUntil: "networkidle" });
+  await page.screenshot({ path: `${out}/${label}-landing.png`, fullPage: true });
+
+  // /login and /signup deep-link past the landing page to the auth form.
+  await page.goto(`http://localhost:5173/${email ? "login" : "signup"}`, { waitUntil: "networkidle" });
+  await page.screenshot({ path: `${out}/${label}-auth.png` });
 
   if (email) {
     await page.getByPlaceholder("you@example.com").fill(email);
     await page.getByPlaceholder(/••••|At least 8/).fill(password);
     await page.getByRole("button", { name: /log in/i }).first().click();
   } else {
-    await page.getByRole("button", { name: /sign up/i }).click();
-    await page.waitForTimeout(200);
     await page.getByPlaceholder("you@example.com").fill(`shot${Date.now()}@t.local`);
     await page.getByPlaceholder("At least 8 characters").fill(password);
+    await page.locator("#confirm-password").fill(password);
     await page.getByRole("button", { name: /create account/i }).click();
   }
   await page.waitForTimeout(1800);

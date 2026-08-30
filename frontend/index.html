@@ -24,6 +24,23 @@
     <meta name="description" content="Budgeting built for students on financial aid. See how long your money lasts — and the day it runs out. No ads, no data selling." />
 
     <!--
+      The root URL now serves a public landing page rather than a login form,
+      so it gets shared: in a group chat, a subreddit, a university Discord.
+      Without these, every one of those unfurls as a bare URL with no title.
+      No og:image is declared on purpose — there is no share graphic yet, and
+      the SVG favicon is not a format link scrapers render. A preview with a
+      real title and description and no picture beats one pointing at an
+      image that won't load.
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Centsible" />
+    <meta property="og:title" content="Centsible — make your money last the term" />
+    <meta property="og:description" content="Most budgeting apps assume a paycheck every month. Centsible assumes one disbursement and a long gap — and tells you how many days of money you have left. Free." />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Centsible — make your money last the term" />
+    <meta name="twitter:description" content="Budgeting built around your term, not a calendar month. See the day your money runs out. Free, no ads, no data selling." />
+
+    <!--
       Fonts are linked here rather than @import-ed from inside the app's
       injected <style>. An @import inside a stylesheet cannot begin
       downloading until that stylesheet itself has parsed, which serialises

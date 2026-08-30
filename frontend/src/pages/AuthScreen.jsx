@@ -83,9 +83,19 @@ function MfaChallenge({ onAuth, onCancel }) {
  * Login / register. Rendered as a real <form> so mobile keyboards show a
  * "Go" key and password managers recognise the fields — the previous version
  * wired Enter up manually per-input, which browsers can't introspect.
+ *
+ * `mode` is controlled by the URL rather than held here: /login and /signup
+ * are two real, linkable pages, and the toggle at the bottom is a navigation
+ * between them, not a widget. Keeping a local copy in sync with the route
+ * would mean two sources of truth that disagree the moment someone uses the
+ * back button. Because the component is not re-keyed on the switch, whatever
+ * they had already typed survives it — which is the point: realising you
+ * need to register after typing your email shouldn't cost you the email.
+ *
+ * `onBack` returns to the landing page. Without it the auth screen is a
+ * dead end for anyone who clicked "Log in" to find out what the product was.
  */
-export function AuthScreen({onAuth}){
-  const [mode,setMode]     = useState("login");
+export function AuthScreen({onAuth, mode="login", onModeChange, onBack}){
   const [email,setEmail]   = useState("");
   const [password,setPass] = useState("");
   const [confirmPassword,setConfirmPass] = useState("");
@@ -138,13 +148,27 @@ export function AuthScreen({onAuth}){
 
   // IS is module-scoped above. fontSize 16 there is load-bearing: iOS Safari
   // auto-zooms the viewport when a focused input is smaller than 16px.
-  const toggle=()=>{setMode(m=>m==="login"?"register":"login");setError("");setConfirmPass("");};
+  //
+  // The toggle navigates; it does not set local state. Everything typed so
+  // far is kept except the confirm field, which belongs only to the register
+  // form and would otherwise carry a stale value back into it.
+  const toggle=()=>{
+    setError(""); setConfirmPass("");
+    onModeChange?.(mode==="login" ? "register" : "login");
+  };
 
   return(
     <div style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--hero)",padding:24}}>
       <div style={{width:"100%",maxWidth:420}}>
         <div style={{textAlign:"center",marginBottom:44}}>
-          <span style={{color:"var(--hero-ink)"}}><Brand size={36} on="dark"/></span>
+          {onBack ? (
+            <button type="button" onClick={onBack} aria-label="Back to the Centsible home page"
+              style={{background:"none",border:"none",padding:0,cursor:"pointer",color:"var(--hero-ink)"}}>
+              <Brand size={36} on="dark"/>
+            </button>
+          ) : (
+            <span style={{color:"var(--hero-ink)"}}><Brand size={36} on="dark"/></span>
+          )}
           <p style={{color:"var(--hero-muted)",fontSize:14,marginTop:6}}>Make your money last the term.</p>
         </div>
 
@@ -219,6 +243,14 @@ export function AuthScreen({onAuth}){
         <p style={{textAlign:"center",marginTop:16,fontSize:11,color:"rgba(200,186,168,.5)",lineHeight:1.5}}>
           By continuing you agree to our Terms of Service and Privacy Policy.<br/>We never sell your data.
         </p>
+        {onBack && !mfaStep && (
+          <p style={{textAlign:"center",marginTop:22}}>
+            <button type="button" onClick={onBack}
+              style={{background:"none",border:"none",color:"var(--hero-muted)",fontSize:13,cursor:"pointer",padding:0}}>
+              ← Back to home
+            </button>
+          </p>
+        )}
       </div>
     </div>
   );

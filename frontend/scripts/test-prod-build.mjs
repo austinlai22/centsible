@@ -42,8 +42,12 @@ ck("no CSP violations on load", cspViolations.length === 0, cspViolations[0]);
 
 // Full round trip through the built bundle.
 const email = `prod${Date.now()}@test.local`;
-await page.getByRole("button", { name: /sign up/i }).click();
-await page.waitForTimeout(200);
+// Scoped to the header: the landing page renders a second "Sign up" in
+// the footer. This is deliberately the one test that still clicks
+// through the real landing nav rather than deep-linking to /signup —
+// it is the full round trip through the built bundle.
+await page.getByRole("banner").getByRole("button", { name: /sign up/i }).click();
+await page.waitForTimeout(300);
 await page.getByPlaceholder("you@example.com").fill(email);
 await page.getByPlaceholder("At least 8 characters").fill("testpassword123");
 await page.getByRole("button", { name: /create account/i }).click();

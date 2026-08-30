@@ -238,6 +238,117 @@ export const CSS = `
   /* Tables/wide content must scroll inside themselves, never the page. */
   .scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
 
+  /* ── Landing page ──────────────────────────────────────────────────────────
+     The signed-out marketing site. Every rule is prefixed .lp- so none of it
+     can leak into the app shell, and it is class-based for the same reason
+     everything above is: media queries, :hover and ::after have no inline
+     equivalent. It reuses the same tokens as the app — the dark hero panel,
+     the teal primary and the mint on-dark accent — so the page a visitor
+     lands on and the product they sign into look like the same thing.
+
+     Base surface is --surface (white), not --bg: a marketing page reads as a
+     sequence of full-bleed bands, and alternating white against --bg tinted
+     bands is what separates them. */
+  @media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+
+  .lp{background:var(--surface)}
+  /* Clears the sticky nav when an in-page anchor is jumped to. */
+  .lp-anchor{scroll-margin-top:84px}
+
+  .lp-nav{
+    position:sticky;top:0;z-index:40;
+    background:rgba(255,255,255,.88);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line);
+  }
+  .lp-nav-in{max-width:1180px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;gap:10px}
+  @media (min-width:768px){.lp-nav-in{padding:14px 32px}}
+  .lp-nav-links{display:none}
+  @media (min-width:960px){.lp-nav-links{display:flex;align-items:center;gap:26px;margin-left:34px}}
+  .lp-nav-link{font-size:14px;font-weight:500;color:var(--muted);text-decoration:none;transition:color .15s}
+  .lp-nav-link:hover{color:var(--primary)}
+  .lp-nav-cta{margin-left:auto;display:flex;align-items:center;gap:6px}
+
+  .lp-wrap{max-width:1180px;margin:0 auto;padding:0 18px}
+  @media (min-width:768px){.lp-wrap{padding:0 32px}}
+  /* Longhand, not a "padding: 58px 0" shorthand. Most bands carry both
+     .lp-wrap and .lp-band on the same element, and the shorthand resets the
+     horizontal padding to 0 — which reads fine on a desktop viewport, where
+     max-width leaves a wide gutter anyway, and puts every heading flush
+     against the screen edge on a phone.
+     (No backticks in these comments: CSS is a template literal.) */
+  .lp-band{padding-top:58px;padding-bottom:58px}
+  @media (min-width:768px){.lp-band{padding-top:88px;padding-bottom:88px}}
+
+  .lp-dark{background:var(--hero);color:var(--hero-ink)}
+  .lp-tint{background:var(--bg)}
+
+  .lp-h1{font-family:${DISPLAY_FONTS};font-size:35px;line-height:1.06;font-weight:800;letter-spacing:-.035em}
+  @media (min-width:768px){.lp-h1{font-size:52px}}
+  @media (min-width:1200px){.lp-h1{font-size:58px}}
+  .lp-h2{font-family:${DISPLAY_FONTS};font-size:27px;line-height:1.16;font-weight:700;letter-spacing:-.03em}
+  @media (min-width:768px){.lp-h2{font-size:38px}}
+  .lp-h3{font-family:${DISPLAY_FONTS};font-size:18px;line-height:1.3;font-weight:700;letter-spacing:-.02em}
+  .lp-lead{font-size:16px;line-height:1.65}
+  @media (min-width:768px){.lp-lead{font-size:18px}}
+
+  .lp-hero-grid{display:grid;gap:42px;grid-template-columns:1fr;align-items:center}
+  @media (min-width:960px){.lp-hero-grid{grid-template-columns:minmax(0,1.02fr) minmax(0,.98fr);gap:56px}}
+
+  /* Pill buttons — Monzo/Revolut idiom, and visually distinct from the
+     app's own squarer --r-md controls, which is the point: this is the
+     marketing surface, not the product. */
+  .lp-btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    border:none;cursor:pointer;font-weight:600;text-decoration:none;white-space:nowrap;
+    border-radius:var(--r-full);
+    transition:background .15s,color .15s,transform .06s,box-shadow .15s;
+  }
+  .lp-btn:active{transform:translateY(1px)}
+  .lp-btn-lg{padding:14px 26px;font-size:15px;min-height:48px}
+  .lp-btn-sm{padding:9px 17px;font-size:14px;min-height:38px}
+  .lp-btn-accent{background:var(--hero-accent);color:var(--hero)}
+  .lp-btn-accent:hover{background:#7BE0D7}
+  .lp-btn-primary{background:var(--primary);color:#fff}
+  .lp-btn-primary:hover{background:var(--primary-dark)}
+  .lp-btn-ghost{background:transparent;color:var(--hero-ink);box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)}
+  .lp-btn-ghost:hover{background:rgba(255,255,255,.09)}
+  .lp-btn-plain{background:transparent;color:var(--ink)}
+  .lp-btn-plain:hover{background:var(--primary-bg);color:var(--primary)}
+
+  .lp-grid-2{display:grid;gap:16px;grid-template-columns:1fr}
+  @media (min-width:860px){.lp-grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .lp-grid-3{display:grid;gap:16px;grid-template-columns:1fr}
+  @media (min-width:640px){.lp-grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media (min-width:1024px){.lp-grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+  .lp-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:24px}
+  .lp-card-hover{transition:box-shadow .2s,transform .2s,border-color .2s}
+  .lp-card-hover:hover{box-shadow:var(--shadow-md);transform:translateY(-3px);border-color:var(--line-strong)}
+  .lp-card-dark{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.1);border-radius:var(--r-lg);padding:24px}
+
+  /* FAQ built on <details> rather than a custom disclosure: it is keyboard
+     operable, screen-reader announced and findable by in-page search
+     without a line of JavaScript. */
+  .lp-faq{border-bottom:1px solid var(--line)}
+  .lp-faq summary{
+    list-style:none;cursor:pointer;position:relative;
+    padding:19px 44px 19px 0;font-size:16px;font-weight:600;color:var(--ink);
+  }
+  .lp-faq summary::-webkit-details-marker{display:none}
+  .lp-faq summary:hover{color:var(--primary)}
+  .lp-faq summary::after{content:"+";position:absolute;right:8px;top:15px;font-size:24px;font-weight:400;line-height:1;color:var(--primary)}
+  .lp-faq[open] summary::after{content:"–"}
+  .lp-faq-body{padding:0 44px 22px 0;font-size:15px;line-height:1.72;color:var(--muted)}
+
+  .lp-footer-grid{display:grid;gap:30px;grid-template-columns:1fr}
+  @media (min-width:720px){.lp-footer-grid{grid-template-columns:1.7fr repeat(3,1fr)}}
+  .lp-footer-link{
+    display:block;background:none;border:none;padding:5px 0;font-size:14px;
+    color:var(--hero-muted);text-decoration:none;cursor:pointer;text-align:left;transition:color .15s;
+  }
+  .lp-footer-link:hover{color:var(--hero-accent)}
+
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
   }

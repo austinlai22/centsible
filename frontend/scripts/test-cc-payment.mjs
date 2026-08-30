@@ -11,8 +11,7 @@ const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 1280, height: 900 } });
 const email = `ccui${Date.now()}@t.local`;
 
-await p.goto("http://localhost:5173/", { waitUntil: "networkidle" });
-await p.getByRole("button", { name: /sign up/i }).click(); await p.waitForTimeout(200);
+await p.goto("http://localhost:5173/signup", { waitUntil: "networkidle" });
 await p.getByPlaceholder("you@example.com").fill(email);
 await p.getByPlaceholder("At least 8 characters").fill("testpassword123");
 await p.locator("#confirm-password").fill("testpassword123");

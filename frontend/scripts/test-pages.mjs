@@ -8,8 +8,12 @@ const bad = [];
 p.on("response", r => { if (r.status() >= 400 && /localhost:3001/.test(r.url()) && !/\/auth\/me|\/auth\/refresh/.test(r.url())) bad.push(`${r.status()} ${r.url().replace("http://localhost:3001","")}`); });
 p.on("pageerror", e => bad.push("PAGEERROR " + e.message));
 
-await p.goto("http://localhost:5173/", { waitUntil: "networkidle" });
-await p.getByRole("button", { name: /sign up/i }).click(); await p.waitForTimeout(200);
+// /signup deep-links past the landing page straight to the register form.
+// This used to be goto("/") plus a "Sign up" click, which now matches two
+// buttons (header and footer) on the landing page. The landing page itself
+// has its own test — scripts/test-landing.mjs — so nothing is lost by
+// skipping it here, and every downstream assertion gets there faster.
+await p.goto("http://localhost:5173/signup", { waitUntil: "networkidle" });
 await p.getByPlaceholder("you@example.com").fill(email);
 await p.getByPlaceholder("At least 8 characters").fill("testpassword123");
 await p.locator("#confirm-password").fill("testpassword123");

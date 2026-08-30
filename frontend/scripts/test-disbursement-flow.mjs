@@ -15,8 +15,7 @@ const email = `disb${Date.now()}@t.local`;
 const errors = [];
 p.on("response", r => { if (r.status() >= 400 && /localhost:3001/.test(r.url())) errors.push(`${r.status()} ${r.url().replace("http://localhost:3001","")}`); });
 
-await p.goto("http://localhost:5173/", { waitUntil: "networkidle" });
-await p.getByRole("button", { name: /sign up/i }).click(); await p.waitForTimeout(200);
+await p.goto("http://localhost:5173/signup", { waitUntil: "networkidle" });
 await p.getByPlaceholder("you@example.com").fill(email);
 await p.getByPlaceholder("At least 8 characters").fill("testpassword123");
 await p.locator("#confirm-password").fill("testpassword123");

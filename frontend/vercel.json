@@ -2,7 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
 
   "rewrites": [
-    { "source": "/api-proxy/:path*", "destination": "https://centsible-zsio.onrender.com/:path*" }
+    { "source": "/api-proxy/:path*", "destination": "https://centsible-zsio.onrender.com/:path*" },
+    { "source": "/((?!api-proxy/).*)", "destination": "/index.html" }
   ],
 
   "headers": [

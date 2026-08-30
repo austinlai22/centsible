@@ -6,6 +6,7 @@ import { getLevelInfo, semesterForDate } from "./lib/periods.js";
 import { Sheet, PageFallback } from "./components/ui.jsx";
 import { Brand } from "./components/Brand.jsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.jsx";
+import { usePath, navigate, readSessionHint, writeSessionHint } from "./lib/router.js";
 
 import { useTransactions } from "./hooks/useTransactions.js";
 import { useAccounts }     from "./hooks/useApi.js";
@@ -14,13 +15,18 @@ import { useBudgets }      from "./hooks/useBudgets.js";
 import { useRewards }      from "./hooks/useRewards.js";
 import { useTerms, useDisbursements } from "./hooks/useCalendar.js";
 
-// Auth and onboarding are needed on first paint for a signed-out visitor, so
-// they stay in the main bundle. Everything below only renders after a
-// successful login, so each page ships as its own chunk that downloads while
-// the shell is already interactive.
+// Landing and AuthScreen stay in the main bundle: one of the two is the first
+// paint for every signed-out visitor, and the other is a single click behind
+// it — a Suspense flash on "Log in" is worse than the bytes.
+//
+// Onboarding used to sit here too, from when the auth form was the root URL
+// and onboarding was one step behind it. With the landing page in front, it
+// is two navigations deep and cannot be reached without a network round-trip
+// to register first, which is more than enough time for its chunk to arrive.
+import { Landing } from "./pages/Landing.jsx";
 import { AuthScreen } from "./pages/AuthScreen.jsx";
-import { Onboarding } from "./pages/Onboarding.jsx";
 
+const Onboarding   = lazy(() => import("./pages/Onboarding.jsx").then(m => ({ default: m.Onboarding })));
 const Summary      = lazy(() => import("./pages/Summary.jsx"));
 const Budget       = lazy(() => import("./pages/Budget.jsx"));
 const Transactions = lazy(() => import("./pages/Transactions.jsx"));
@@ -36,6 +42,28 @@ const RewardsSheet = lazy(() => import("./pages/Rewards.jsx").then(m => ({ defau
  * wordmark into "flo w".
  */
 
+/**
+ * The four URLs this app has.
+ *
+ * "/" is public and stays public for everyone, signed in or not: the landing
+ * page is the front door, not a redirect gate. A signed-in visitor who types
+ * the bare domain gets the marketing page with a button into their account,
+ * which is how every consumer bank site behaves — bouncing them straight
+ * into the app would mean they could never read their own pricing or FAQ
+ * page again without logging out.
+ *
+ * Anything not listed here is canonicalised to "/" rather than 404ing;
+ * there is no content at any other path to be wrong about.
+ */
+const ROUTES = { "/": "landing", "/login": "login", "/signup": "signup", "/app": "app" };
+
+/** The splash shown while the session resolves, and while a route chunk loads. */
+const Splash = () => (
+  <div style={{minHeight:"100dvh",background:"var(--hero)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <span style={{opacity:.6,color:"var(--hero-ink)"}}><Brand size={32} on="dark"/></span>
+  </div>
+);
+
 export default function App(){
   // authUser.onboarded_at (from the DB) is the single source of truth for
   // whether onboarding is complete — so a refresh, a new browser, or a new
@@ -45,6 +73,9 @@ export default function App(){
   const [tab,setTab]             = useState("summary");
   const [showRewards,setShowRewards] = useState(false);
 
+  const path  = usePath();
+  const route = ROUTES[path] ?? null;
+
   // Gates every data hook's first fetch on a CONFIRMED session (authReady has
   // resolved AND authUser is a real user object, not the false/null it starts
   // as). Without this, each hook fired on the very first paint — before
@@ -52,7 +83,14 @@ export default function App(){
   // nothing was wired to retry once login actually succeeded. That left the
   // app stuck on demo-fallback data and a permanent "Session expired" banner
   // for the rest of the tab's life, even with a perfectly valid session.
-  const authed = authReady && !!authUser;
+  //
+  // route==="app" is the second half of that gate, and it is about the
+  // landing page specifically: "/" is public and now renders for signed-in
+  // visitors too, so without it a marketing page would fire seven authed API
+  // calls at a backend that sleeps when idle — waking it, and spending a cold
+  // start, for a reader who may never sign in. useApi re-runs when `enabled`
+  // flips, so the data loads on arrival at /app instead.
+  const authed = authReady && !!authUser && route === "app";
 
   const txn      = useTransactions(authed);
   const accounts = useAccounts(authed);
@@ -64,13 +102,31 @@ export default function App(){
 
   useEffect(()=>{
     authApi.me()
-      .then(res=>{ setAuthUser(res.user); setAuthReady(true); })
-      .catch(()=>{ setAuthUser(false); setAuthReady(true); });
+      .then(res=>{ setAuthUser(res.user);  setAuthReady(true); writeSessionHint(true); })
+      .catch(()=>{ setAuthUser(false);     setAuthReady(true); writeSessionHint(false); });
   },[]);
+
+  // Redirects, as an effect rather than inline in render: navigate() writes to
+  // window.history and dispatches an event, and doing that during a render
+  // means mutating global state while React is deciding what to draw.
+  useEffect(()=>{
+    // A URL with nothing behind it. replace, not push, so Back doesn't
+    // return to the address that was never a page.
+    if(route===null) return navigate("/", {replace:true});
+    if(!authReady) return;
+    // Already signed in and asking for the login form — send them where they
+    // were actually trying to go.
+    if((route==="login"||route==="signup") && authUser) navigate("/app", {replace:true});
+    // The one genuinely protected route. The server enforces this too; this
+    // only avoids rendering a shell that would 401 on every request.
+    if(route==="app" && !authUser) navigate("/login", {replace:true});
+  },[route,authReady,authUser]);
 
   const handleLogout=async()=>{
     try{ await authApi.logout(); }catch{ /* clear locally regardless */ }
     setAuthUser(false);
+    writeSessionHint(false);
+    navigate("/");   // back to the landing page, not the login form
   };
 
   const handleOnboardingComplete = async (answers) => {
@@ -102,21 +158,61 @@ export default function App(){
     }
   };
 
-  if(!authReady) return(
+  /**
+   * "/" — public, and rendered IMMEDIATELY, without waiting on authApi.me().
+   *
+   * This is the one route that must not block on the session. The API sleeps
+   * when idle, so a cold start is tens of seconds, and gating the landing
+   * page on it would show a first-time visitor a splash screen for the whole
+   * of that — for an answer ("you are not signed in") that has no bearing on
+   * anything they came to read. Landing takes the session as three states and
+   * renders its own call to action from the cached hint until the real answer
+   * arrives.
+   */
+  if(route==="landing" || route===null) return(
     <>
       <style>{CSS}</style>
-      <div style={{minHeight:"100dvh",background:"var(--hero)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-        <span style={{opacity:.6,color:"var(--hero-ink)"}}><Brand size={32} on="dark"/></span>
-      </div>
+      <Landing
+        authReady={authReady}
+        signedIn={authReady ? !!authUser : readSessionHint()}
+        userName={authUser?.name || ""}
+        onLogin={()=>navigate("/login")}
+        onSignup={()=>navigate("/signup")}
+        onOpenApp={()=>navigate("/app")}/>
     </>
   );
 
-  if(!authUser) return(
-    <><style>{CSS}</style><AuthScreen onAuth={user=>setAuthUser(user)}/></>
-  );
+  if(route==="login" || route==="signup"){
+    // Hold the splash while a signed-in visitor is being bounced to /app by
+    // the redirect effect — rendering a login form for a fraction of a second
+    // to someone who is already logged in is worse than a beat of nothing.
+    if(authReady && authUser) return <><style>{CSS}</style><Splash/></>;
+    return(
+      <>
+        <style>{CSS}</style>
+        <AuthScreen
+          mode={route==="signup" ? "register" : "login"}
+          onModeChange={m=>navigate(m==="register" ? "/signup" : "/login")}
+          onAuth={user=>{ writeSessionHint(true); setAuthUser(user); navigate("/app"); }}
+          onBack={()=>navigate("/")}/>
+      </>
+    );
+  }
+
+  // From here down is /app, which the redirect effect guarantees is reached
+  // only with a resolved, signed-in session.
+  if(!authReady || !authUser) return <><style>{CSS}</style><Splash/></>;
 
   if(!authUser.onboarded_at) return(
-    <><style>{CSS}</style><Onboarding onComplete={handleOnboardingComplete}/></>
+    <>
+      <style>{CSS}</style>
+      {/* Onboarding is its own chunk now; the splash is the same dark panel
+          the app already shows while the session resolves, so a slow network
+          reads as a continuation rather than a new blank screen. */}
+      <Suspense fallback={<Splash/>}>
+        <Onboarding onComplete={handleOnboardingComplete}/>
+      </Suspense>
+    </>
   );
 
   const {cur:lvl}=getLevelInfo(rewards.points);

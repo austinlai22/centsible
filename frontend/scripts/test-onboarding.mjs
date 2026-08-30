@@ -20,9 +20,10 @@ const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 const email = `onb${Date.now()}@test.local`;
 
-await page.goto(APP, { waitUntil: "networkidle" });
-await page.getByRole("button", { name: /sign up/i }).click();
-await page.waitForTimeout(200);
+// APP + "/signup" deep-links past the landing page straight to the
+// register form. A bare "Sign up" click now matches two buttons there
+// (header and footer); the landing page has its own test.
+await page.goto(APP + "/signup", { waitUntil: "networkidle" });
 await page.getByPlaceholder("you@example.com").fill(email);
 await page.getByPlaceholder("At least 8 characters").fill("testpassword123");
 await page.locator("#confirm-password").fill("testpassword123");
@@ -122,9 +123,7 @@ const { generate: totpGenerate } = await import("../../server/lib/totp.js");
 const page2 = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 const email2 = `onb2fa${Date.now()}@test.local`;
 
-await page2.goto(APP, { waitUntil: "networkidle" });
-await page2.getByRole("button", { name: /sign up/i }).click();
-await page2.waitForTimeout(200);
+await page2.goto(APP + "/signup", { waitUntil: "networkidle" });
 await page2.getByPlaceholder("you@example.com").fill(email2);
 await page2.getByPlaceholder("At least 8 characters").fill("testpassword123");
 await page2.locator("#confirm-password").fill("testpassword123");
