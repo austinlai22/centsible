@@ -50,6 +50,11 @@ await page.getByRole("banner").getByRole("button", { name: /sign up/i }).click()
 await page.waitForTimeout(300);
 await page.getByPlaceholder("you@example.com").fill(email);
 await page.getByPlaceholder("At least 8 characters").fill("testpassword123");
+// The register form refuses to submit unless the confirmation matches, so
+// without this the sign-up never happened and every assertion after it timed
+// out chasing an onboarding screen that was never reached. Every other suite
+// in this folder already filled it; this one alone did not.
+await page.locator("#confirm-password").fill("testpassword123");
 await page.getByRole("button", { name: /create account/i }).click();
 await page.waitForTimeout(1600);
 ck("sign-up works against the real API from the built bundle",
@@ -59,10 +64,22 @@ ck("still no CSP violations after an authenticated request", cspViolations.lengt
 await page.locator("input").first().fill("Austin");
 await page.getByRole("button", { name: /continue|skip/i }).click();
 await page.waitForTimeout(400);
+// #ob-end fills itself from the start date, so only the start is entered.
 await page.locator("#ob-start").fill("2026-08-24");
 await page.waitForTimeout(300);
 await page.getByRole("button", { name: /continue|skip/i }).click();
 await page.waitForTimeout(500);
+
+// The two-factor offer, which this walk predated. Its buttons are "Set up
+// two-factor" and "Set up later" — neither matches the /continue|skip/ used
+// for every other step, so the run stalled here for the full 30s timeout and
+// reported it as "reaches the app" failing, three steps further on than the
+// actual problem.
+const later = page.getByRole("button", { name: /set up later/i });
+if (await later.isVisible({ timeout: 3000 }).catch(() => false)) {
+  await later.click();
+  await page.waitForTimeout(500);
+}
 
 const rp = page.getByRole("button", { name: /read our privacy policy/i });
 if (await rp.isVisible({ timeout: 3000 }).catch(() => false)) {

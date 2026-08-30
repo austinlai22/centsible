@@ -1,7 +1,7 @@
 #!/bin/bash
 # Server-side logic audit. Asserts what the API should MEAN, not just that it
 # responds — a failure here is a reasoning gap.
-API=${API:-http://localhost:3999}
+API=${API:-http://localhost:3001}   # see test-api.sh
 pass=0; fail=0
 ck(){ if [ "$2" = "1" ]; then echo "  PASS  $1"; pass=$((pass+1)); else echo "  FAIL  $1"; echo "        $3"; fail=$((fail+1)); fi; }
 

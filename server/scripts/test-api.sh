@@ -1,6 +1,11 @@
 #!/bin/bash
 # End-to-end check of the fixed server flows.
-API=${API:-http://localhost:3999}
+# 3001 — server/.env's PORT, index.js's default, and what `npm run dev`
+# actually listens on. This defaulted to 3999, which nothing here has ever
+# served, so running the script without an explicit API= produced a wall of
+# curl exit-code 000 failures that look like broken endpoints rather than a
+# connection that was never made. Still overridable for a non-default port.
+API=${API:-http://localhost:3001}
 J=/tmp/flow-cookies.txt
 rm -f $J
 EMAIL="e2e$(date +%s)@test.local"

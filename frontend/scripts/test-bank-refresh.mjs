@@ -45,9 +45,22 @@ page.on("pageerror", e => errors.push(e.message));
 const hits = { transactions: 0, accounts: 0 };
 let removed = false;
 
-await page.route("**/api-proxy/**", async (route) => {
+/**
+ * Matched on the PATH, not on a base URL.
+ *
+ * VITE_API_URL differs by how the app was started — "/api-proxy" for the
+ * Vercel-shaped setup, "http://localhost:3001" when a real API is running
+ * locally — so a glob like "**\/api-proxy/**" silently matches nothing under
+ * the second one. Every request then reaches the real backend, /auth/me
+ * answers 401, and the suite fails on a redirect to /login with no hint that
+ * the mocks were never installed.
+ */
+const API_RE = /^(?:\/api-proxy)?\/(auth|plaid|api)\//;
+const unhandled = [];
+
+await page.route((u) => API_RE.test(new URL(u).pathname), async (route) => {
   const req = route.request();
-  const url = new URL(req.url()).pathname.replace("/api-proxy", "");
+  const url = new URL(req.url()).pathname.replace(/^\/api-proxy/, "");
   const json = (body, status = 200) =>
     route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 
@@ -55,12 +68,18 @@ await page.route("**/api-proxy/**", async (route) => {
   if (url === "/plaid/transactions") { hits.transactions++; return json({ transactions: removed ? [] : TXNS }); }
   if (url === "/plaid/accounts")     { hits.accounts++;     return json({ accounts: removed ? [] : [ACCOUNT] }); }
   if (url.startsWith("/plaid/items/") && req.method() === "DELETE") { removed = true; return json({ ok: true }); }
-  // Everything else the app fetches on load — empty is a valid answer.
-  if (url === "/goals")              return json({ goals: [] });
-  if (url === "/budgets")            return json({ budgets: {} });
-  if (url === "/rewards")            return json({ points: 0, history: [] });
-  if (url === "/terms")              return json({ terms: [] });
-  if (url === "/disbursements")      return json({ disbursements: [] });
+  // The rest of what a first paint fans out to. Empty is a valid answer for
+  // all of them, but they are listed explicitly rather than swept up by the
+  // catch-all so that a path CHANGING shows up in `unhandled` below instead
+  // of silently becoming {}.
+  if (url === "/api/goals")          return json({ goals: [] });
+  if (url === "/api/budgets")        return json({ budgets: {} });
+  if (url === "/api/rewards")        return json({ points: 0 });
+  if (url === "/api/rewards/history")return json({ history: [] });
+  if (url === "/api/terms")          return json({ terms: [] });
+  if (url === "/api/disbursements")  return json({ disbursements: [] });
+
+  unhandled.push(`${req.method()} ${url}`);
   return json({});
 });
 
@@ -107,6 +126,10 @@ ck("and gone from Summary",
    !(await page.getByText(/Test Bank coffee/i).first().isVisible().catch(() => false)));
 
 ck("no page errors", errors.length === 0, errors[0]);
+// A path the mocks don't know about means the client moved and this file
+// didn't — the failure mode where a suite keeps passing against a fiction.
+ck("every API call this test saw was one it mocks deliberately",
+   unhandled.length === 0, [...new Set(unhandled)].join(", "));
 
 console.log(`\n  PASSED: ${pass}   FAILED: ${fail}`);
 await browser.close();
