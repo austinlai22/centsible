@@ -23,7 +23,27 @@ export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max:              10,
   idleTimeoutMillis:   30_000,
-  connectionTimeoutMillis: 2_000,
+
+  /**
+   * 10s, raised from 2s.
+   *
+   * Neon's free tier scales the compute to zero after a few minutes idle, so
+   * the first request after a quiet spell has to WAKE the database before it
+   * can connect at all. That routinely takes longer than two seconds, and the
+   * pool was giving up and throwing "Connection terminated due to connection
+   * timeout" — which requireAuth turns into a 500 on EVERY authenticated
+   * request, not a slow one, until something else happens to warm it.
+   *
+   * "Fail fast rather than hang" is the right instinct against an always-on
+   * database and the wrong one against a serverless database, where the slow
+   * path is normal operation rather than a symptom of anything.
+   */
+  connectionTimeoutMillis: 10_000,
+
+  // Keeps the TCP socket warm so an idle connection is less likely to be
+  // dropped silently somewhere in between and then handed out dead — the
+  // "Connection terminated unexpectedly" half of the same problem.
+  keepAlive: true,
   // Enforce SSL in production; skip for local dev unless you've set up a cert.
   //
   // rejectUnauthorized defaults to strict (validates the server cert), but is
@@ -74,15 +94,57 @@ export async function connectClient() {
 }
 
 /**
- * Thin query helper — use this everywhere instead of pool.query()
- * to get consistent error context in logs.
+ * The two connection-level failures a serverless database produces, which are
+ * not the same thing and must not be treated the same way.
+ *
+ * An ACQUISITION TIMEOUT is thrown by the pool before a client is ever handed
+ * out, so the statement provably never reached Postgres.
+ *
+ * A DROPPED CONNECTION is ambiguous: the socket closed, but the query may
+ * have already committed with only the response lost. Retrying that blindly
+ * is how duplicate rows get written.
+ */
+const isAcquireTimeout    = (err) => /connection terminated due to connection timeout/i.test(err?.message || "");
+const isDroppedConnection = (err) => /connection terminated unexpectedly/i.test(err?.message || "");
+
+/**
+ * Whether repeating a statement can change anything. Deliberately strict: a
+ * bare SELECT with no write keyword anywhere in it. Anything this can't prove
+ * is read-only is treated as a write, because the cost of being wrong in that
+ * direction is a duplicated row and the cost of being wrong in the other is
+ * one error the user was going to see anyway.
+ */
+const isReadOnly = (sql) => /^\s*select\b/i.test(sql) && !/\b(insert|update|delete|merge)\b/i.test(sql);
+
+/**
+ * Thin query helper — use this everywhere instead of pool.query() to get
+ * consistent error context in logs, and one retry for the specific failures
+ * that mean "the database was asleep" rather than "the database said no".
+ *
+ * Without this, waking Neon costs a 500 on whichever request happened to
+ * arrive first. Raising connectionTimeoutMillis above covers the common case;
+ * this covers the rest — chiefly a pooled connection that the server closed
+ * while it was idle, which pg only discovers at the moment it is used.
  */
 export async function query(sql, params) {
-  try {
-    return await pool.query(sql, params);
-  } catch (err) {
-    console.error("[db] Query error:", err.message, "| SQL:", sql.slice(0, 80));
-    throw err;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await pool.query(sql, params);
+    } catch (err) {
+      const worthRetrying =
+        attempt === 0 &&
+        (isAcquireTimeout(err) || (isDroppedConnection(err) && isReadOnly(sql)));
+
+      if (!worthRetrying) {
+        console.error("[db] Query error:", err.message, "| SQL:", sql.slice(0, 80));
+        throw err;
+      }
+
+      console.warn("[db] Connection error, retrying once:", err.message, "| SQL:", sql.slice(0, 80));
+      // A beat for the compute to finish waking, rather than immediately
+      // spending the retry against a database that is still starting.
+      await new Promise((r) => setTimeout(r, 250));
+    }
   }
 }
 

@@ -1,7 +1,7 @@
 {
   "name": "centsible-server",
   "version": "1.0.0",
-  "description": "Centsible backend — Express + PostgreSQL",
+  "description": "Centsible backend \u2014 Express + PostgreSQL",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -16,6 +16,7 @@
     "test:calendar": "bash scripts/test-calendar.sh",
     "test:categories": "node scripts/test-loan-categories.mjs",
     "test:full-resync": "node scripts/test-full-resync.mjs",
+    "test:db-retry": "node scripts/test-db-retry.mjs",
     "start:prod": "node db/migrate.js && node --import ./instrument.js index.js"
   },
   "dependencies": {
