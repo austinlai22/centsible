@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { authApi, termsApi, disbursementsApi } from "./api.js";
 import { CSS, S } from "./styles.js";
 import { NAV } from "./constants.js";
@@ -121,6 +121,32 @@ export default function App(){
     // only avoids rendering a shell that would 401 on every request.
     if(route==="app" && !authUser) navigate("/login", {replace:true});
   },[route,authReady,authUser]);
+
+  /**
+   * Everything that has to be refetched when a bank is linked or unlinked.
+   *
+   * Both events change more than the account list, and the server has
+   * already done the work by the time the client hears about it:
+   *
+   *   unlink — DELETE /plaid/items cascades through plaid_item_id, so that
+   *            bank's TRANSACTIONS are deleted along with its accounts
+   *   link   — POST /plaid/exchange runs syncItem before it responds, so a
+   *            new bank's transactions exist the moment the modal closes
+   *
+   * Each call site used to reload only the accounts, which left Activity,
+   * Summary and Budget showing a removed bank's spending — and the runway
+   * computing against it — until the user happened to reload the page.
+   *
+   * It lives here rather than in About because App owns the hooks, so the
+   * knowledge of WHICH caches bank data feeds stays in one place. A page
+   * that mutates a bank should not also have to remember that transactions
+   * are downstream of it; that is the coupling that let this rot in the
+   * first place, and that would rot again the next time a hook is added.
+   */
+  const refreshBankData=useCallback(
+    ()=>Promise.all([accounts.reload(), txn.reload()]),
+    [accounts.reload, txn.reload]
+  );
 
   const handleLogout=async()=>{
     try{ await authApi.logout(); }catch{ /* clear locally regardless */ }
@@ -256,6 +282,7 @@ export default function App(){
     about:        ()=><About profile={profile} setProfile={setAuthUser} {...rewardProps}
                        accounts={accounts.accounts} accountsLoading={accounts.loading}
                        accountsError={accounts.error} reloadAccounts={accounts.reload}
+                       refreshBankData={refreshBankData}
                        terms={termsH.terms} reloadTerms={termsH.reload}
                        disbursements={disbH.disbursements} reloadDisbursements={disbH.reload}
                        onLogout={handleLogout}/>,

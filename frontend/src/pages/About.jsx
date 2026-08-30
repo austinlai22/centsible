@@ -14,7 +14,8 @@ import { usePlaidLink } from "../hooks/usePlaidLink.js";
 
 export default function About({
   profile,setProfile,points,redeemed,earn,redeem,
-  accounts,accountsLoading,accountsError,reloadAccounts,onLogout,terms,reloadTerms,disbursements,reloadDisbursements}){
+  accounts,accountsLoading,accountsError,reloadAccounts,refreshBankData,
+  onLogout,terms,reloadTerms,disbursements,reloadDisbursements}){
   const [section,setSection]=useState(null);
   const {cur,prog}=getLevelInfo(points);
   const [pForm,setPForm]=useState({
@@ -48,7 +49,10 @@ export default function About({
     finally{setSaving(false);}
   };
 
-  const onLinkSuccess=useCallback(()=>reloadAccounts(),[reloadAccounts]);
+  // Not reloadAccounts: POST /plaid/exchange runs a transaction sync before
+  // it responds, so a newly linked bank's spending already exists on the
+  // server and the transaction list is stale the instant this fires.
+  const onLinkSuccess=useCallback(()=>refreshBankData(),[refreshBankData]);
   const {open:openPlaidLink,linking,error:linkError}=usePlaidLink(onLinkSuccess);
 
   const [removingId,setRemovingId]=useState(null);
@@ -60,8 +64,21 @@ export default function About({
       // DELETE /plaid/items/:itemId validates. Falling back to a.id sent a
       // Plaid account string and always 400'd.
       await plaidApi.removeItem(a.plaid_item_id);
-      reloadAccounts();
-    }catch(e){ alert(e.message||"Couldn't remove this account — please try again."); }
+    }catch(e){
+      alert(e.message||"Couldn't remove this account — please try again.");
+      setRemovingId(null);
+      return;
+    }
+    // Past this point the bank IS gone from the server, so the refresh is
+    // deliberately outside the catch above: a failure here leaves a stale
+    // screen, not an unremoved account, and telling someone to "try again"
+    // would send them to a second DELETE that now 404s. The hooks surface
+    // their own error banner and Retry for this case.
+    //
+    // Awaited so the row keeps its "Removing…" state until the transaction
+    // list has caught up — otherwise the account disappears while the spending
+    // it brought with it is still listed on Activity a moment longer.
+    try{ await refreshBankData(); }
     finally{ setRemovingId(null); }
   };
 
