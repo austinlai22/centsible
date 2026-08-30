@@ -369,6 +369,19 @@ export const CSS = `
     transition:opacity .6s cubic-bezier(.22,.61,.36,1), transform .6s cubic-bezier(.22,.61,.36,1);
   }
 
+  /* The hero mock's progress bar, filling from empty on arrival.
+     scaleX rather than width: width animates layout on every frame, transform
+     is composited, and this runs while the whole hero is already mid-reveal.
+     --fill is the target fraction, set inline next to the figure it comes
+     from, so the CSS never hardcodes a number the JSX could change.
+     The fill keeps its own border-radius and the 27% horizontal squash of a
+     4px cap is not perceptible at 8px tall. */
+  .lp-mock-fill{width:100%;transform:scaleX(0);transform-origin:left center}
+  .lp-mock-fill.is-filled{
+    transform:scaleX(var(--fill,1));
+    transition:transform 1.5s cubic-bezier(.22,.61,.36,1) .32s;
+  }
+
   /* Reduced motion gets no motion — not faster motion. The global rule at
      the end of this stylesheet collapses transition-duration to ~0, which
      would leave these elements starting at opacity 0 and snapping in only
@@ -378,6 +391,10 @@ export const CSS = `
      specificity regardless of source order. */
   @media (prefers-reduced-motion:reduce){
     .lp-reveal,.lp-reveal-in{opacity:1!important;transform:none!important;transition:none!important}
+    /* Same reasoning for the bar: shown at its real value, not filled fast.
+       The counting figure beside it is handled in JS, which reads the same
+       preference before it starts. */
+    .lp-mock-fill{transform:scaleX(var(--fill,1))!important;transition:none!important}
   }
 
   @media (prefers-reduced-motion:reduce){

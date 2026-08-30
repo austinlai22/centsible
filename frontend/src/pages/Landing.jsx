@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense } from "react";
 import { S } from "../styles.js";
 import { Brand } from "../components/Brand.jsx";
-import { TermsModal } from "../components/TermsModal.jsx";
-import { PrivacyModal } from "../components/PrivacyModal.jsx";
+// Lazy, unlike everything else the landing page renders. These two carry
+// the full text of the Terms and the Privacy Policy — several kB of prose
+// that was landing in the first-paint chunk for a modal most visitors never
+// open. They are opened by a deliberate click, which is ample time to fetch
+// a small chunk, and About already loads them the same way, so the two
+// share one chunk rather than duplicating it.
+const TermsModal   = lazy(() => import("../components/TermsModal.jsx").then(m => ({ default: m.TermsModal })));
+const PrivacyModal = lazy(() => import("../components/PrivacyModal.jsx").then(m => ({ default: m.PrivacyModal })));
 import { Reveal } from "../components/Reveal.jsx";
-import { stagger } from "../lib/reveal.js";
+import { stagger, useInView, prefersReducedMotion } from "../lib/reveal.js";
 
 /**
  * Landing.jsx — the public marketing page, and the first thing a signed-out
@@ -178,11 +184,68 @@ const FAQS = [
  * left to term end means $1,240 ÷ 52 = $23.85/day sustainable; 38 days from
  * Oct 21 is Nov 28, which is 52 − 38 = 14 days short; and closing the gap
  * needs $32.40 − $23.85 = $8.55/day less.
+ *
+ * On arrival the card animates itself into that state: the bar fills from
+ * empty and the headline figure counts down to 38. It is showing what the
+ * real card shows — a number falling and a term filling up — so the motion
+ * is the product's own story rather than decoration bolted onto a still.
+ *
+ * aria-hidden, as it always was. A counter ticking sixty times a second is
+ * exactly the kind of thing that should never reach a screen reader, and
+ * the surrounding copy already says everything this picture does.
  */
+const DAYS_TO   = 38;    // where the figure lands — the card's real number
+const DAYS_FROM = 100;   // where the count starts
+const COUNT_MS  = 1500;
+const COUNT_DELAY_MS = 320;   // kept in step with .lp-mock-fill's transition-delay
+
 function RunwayMock() {
-  const covered = Math.round((38 / 52) * 100); // 73%
+  const covered = Math.round((DAYS_TO / 52) * 100); // 73%
+  const [cardRef, inView] = useInView();
+  const daysRef = useRef(null);
+  const [filled, setFilled] = useState(false);
+
+  // Seed the starting figure BEFORE the first paint. The JSX renders the
+  // final 38 so that the correct number is what exists without JavaScript,
+  // under reduced motion, and in any snapshot of the markup — but painting
+  // 38 and then snapping to 100 to count back down is a flicker, and
+  // useEffect would run too late to prevent it.
+  useLayoutEffect(() => {
+    if (prefersReducedMotion()) return;
+    if (daysRef.current) daysRef.current.textContent = String(DAYS_FROM);
+  }, []);
+
+  useEffect(() => {
+    if (!inView) return;
+    setFilled(true);                       // CSS handles the bar from here
+    if (prefersReducedMotion()) return;
+    const el = daysRef.current;
+    if (!el) return;
+
+    // Written straight to the DOM rather than through state: this ticks
+    // ~90 times over a second and a half, and it does so while the whole
+    // hero is mid-reveal. Ninety reconciliations of the surrounding card
+    // buys nothing — nothing else on screen depends on the value.
+    let raf = 0, startedAt = 0;
+    const tick = (now) => {
+      if (!startedAt) startedAt = now;
+      const elapsed = now - startedAt - COUNT_DELAY_MS;
+      if (elapsed >= 0) {
+        const t = Math.min(1, elapsed / COUNT_MS);
+        // easeOutCubic: leaves quickly, settles gently onto the final
+        // number instead of stopping dead on it.
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = String(Math.round(DAYS_FROM + (DAYS_TO - DAYS_FROM) * eased));
+        if (t >= 1) return;                // lands exactly on DAYS_TO
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [inView]);
+
   return (
-    <div className="card" aria-hidden="true"
+    <div ref={cardRef} className="card" aria-hidden="true"
       style={{ padding: "22px 22px 22px 21px", borderLeft: "3px solid var(--warning)", boxShadow: "var(--shadow-lg)" }}>
       <div style={{ ...S.between, gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
         <div style={{ minWidth: 0 }}>
@@ -190,7 +253,7 @@ function RunwayMock() {
             Runway · Fall 2026
           </p>
           <p className="tnum" style={{ ...S.display, fontSize: 34, fontWeight: 700, marginTop: 4, color: "var(--warning)" }}>
-            38 days
+            <span ref={daysRef}>{DAYS_TO}</span> days
           </p>
           <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>
             of money, but <strong style={{ color: "var(--ink)" }}>52 days</strong> left to Dec 12
@@ -202,7 +265,8 @@ function RunwayMock() {
       </div>
 
       <div style={{ height: 8, background: "var(--line)", borderRadius: "var(--r-full)", overflow: "hidden" }}>
-        <div style={{ height: "100%", width: covered + "%", background: "var(--warning)", borderRadius: "var(--r-full)" }} />
+        <div className={filled ? "lp-mock-fill is-filled" : "lp-mock-fill"}
+          style={{ height: "100%", background: "var(--warning)", borderRadius: "var(--r-full)", "--fill": covered / 100 }} />
       </div>
 
       <div style={{ ...S.between, gap: 12, marginTop: 10, flexWrap: "wrap" }}>
@@ -638,8 +702,13 @@ export function Landing({ onLogin, onSignup, onOpenApp, signedIn = false, authRe
         </div>
       </footer>
 
-      {legal === "terms" && <TermsModal onClose={() => setLegal(null)} />}
-      {legal === "privacy" && <PrivacyModal onClose={() => setLegal(null)} />}
+      {/* No fallback: the modals are portalled over the page, which stays
+          fully readable underneath, so a spinner would only flash a
+          placeholder over content the reader can already see. */}
+      <Suspense fallback={null}>
+        {legal === "terms" && <TermsModal onClose={() => setLegal(null)} />}
+        {legal === "privacy" && <PrivacyModal onClose={() => setLegal(null)} />}
+      </Suspense>
     </div>
   );
 }

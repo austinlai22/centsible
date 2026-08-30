@@ -238,6 +238,55 @@ console.log("\n=== scroll reveal ===");
   await rm.close();
 }
 
+console.log("\n=== the hero mock's intro animation ===");
+{
+  const a = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  a.on("pageerror", e => errors.push("mock: " + e.message));
+  await a.goto(APP + "/", { waitUntil: "domcontentloaded" });
+
+  const daysText = () => a.locator(".lp-mock-fill").first().isVisible()
+    .then(() => a.evaluate(() => document.querySelector(".tnum span")?.textContent ?? ""));
+  // scaleX of the fill, read straight off the computed matrix.
+  const fillScale = () => a.evaluate(() => {
+    const el = document.querySelector(".lp-mock-fill");
+    if (!el) return -1;
+    const m = new DOMMatrixReadOnly(getComputedStyle(el).transform);
+    return m.a;
+  });
+
+  await a.waitForTimeout(120);
+  const startDays = await daysText();
+  const startFill = await fillScale();
+  ck("the figure starts above its final value", Number(startDays) > 38, `started at ${startDays}`);
+  ck("and the bar starts empty", startFill < 0.15, `scaleX ${startFill.toFixed(3)}`);
+
+  await a.waitForTimeout(1200);
+  const midDays = Number(await daysText());
+  ck("the figure counts down on the way", midDays < Number(startDays) && midDays > 38, `mid ${midDays}`);
+
+  await a.waitForTimeout(1600);
+  ck("and lands exactly on 38", (await daysText()) === "38", `ended at ${await daysText()}`);
+  const endFill = await fillScale();
+  // 38/52 = 73%. The bar must stop where the real card would stop.
+  ck("the bar fills to 73% and stops", Math.abs(endFill - 0.73) < 0.02, `scaleX ${endFill.toFixed(3)}`);
+  await a.close();
+}
+
+{
+  const rm = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+  rm.on("pageerror", e => errors.push("mock reduced-motion: " + e.message));
+  await rm.goto(APP + "/", { waitUntil: "domcontentloaded" });
+  await rm.waitForTimeout(250);   // far inside the 1.5s the animation would take
+  ck("with reduced motion the figure is 38 immediately, never 100",
+     (await rm.evaluate(() => document.querySelector(".tnum span")?.textContent)) === "38");
+  const f = await rm.evaluate(() => {
+    const el = document.querySelector(".lp-mock-fill");
+    return el ? new DOMMatrixReadOnly(getComputedStyle(el).transform).a : -1;
+  });
+  ck("and the bar is already at its real value", Math.abs(f - 0.73) < 0.02, `scaleX ${f.toFixed(3)}`);
+  await rm.close();
+}
+
 console.log("\n=== mobile ===");
 const m = await browser.newPage({ viewport: { width: 390, height: 844 } });
 m.on("pageerror", e => errors.push("mobile: " + e.message));

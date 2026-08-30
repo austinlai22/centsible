@@ -23,7 +23,7 @@
  * IntersectionObserver missing entirely — handled below by revealing
  * immediately rather than leaving the page blank.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const SUPPORTED = typeof window !== "undefined" && "IntersectionObserver" in window;
 
@@ -70,3 +70,44 @@ export function useReveal() {
 
 /** Stagger helper: enough to read as a cascade, capped so it never drags. */
 export const stagger = (i, step = 70, max = 240) => Math.min(i * step, max);
+
+/**
+ * Like useReveal, but reports arrival as state instead of adding a class —
+ * for the cases where entering the viewport has to START something (a
+ * counter, a bar filling) rather than just fade an element in.
+ *
+ * Gets its own observer rather than joining the shared one above, because
+ * the shared one's whole job is to add a class and unobserve; teaching it to
+ * also dispatch per-element callbacks would make the common path pay for the
+ * rare one. There is one of these on the page.
+ *
+ * Latches: once true it stays true, and the observer disconnects. An
+ * animation that replays every time its element scrolls past is a fidget,
+ * not an entrance.
+ */
+export function useInView({ rootMargin = "0px 0px -12% 0px", threshold = 0.01 } = {}) {
+  const ref = useRef(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || inView) return;
+    if (!SUPPORTED) { setInView(true); return; }
+    const ob = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setInView(true); ob.disconnect(); }
+    }, { rootMargin, threshold });
+    ob.observe(el);
+    return () => ob.disconnect();
+  }, [inView, rootMargin, threshold]);
+  return [ref, inView];
+}
+
+/**
+ * Whether the visitor asked for less motion.
+ *
+ * Read at animation time rather than cached at module load: this is a
+ * setting people change, and Chrome/Firefox apply it to open tabs live.
+ */
+export const prefersReducedMotion = () =>
+  typeof window !== "undefined" &&
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
