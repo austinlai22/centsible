@@ -141,3 +141,7 @@ contact address filled in.
 It is a budgeting tool: not a bank, not a lender, not a financial advisor. Every
 figure is arithmetic on numbers you and your bank supply, and neither is
 verified.
+
+## License
+
+[MIT](LICENSE).

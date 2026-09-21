@@ -58,7 +58,7 @@ PLAID_CLIENT_ID=<your Plaid client_id>
 PLAID_SECRET=<your Plaid sandbox secret>
 PLAID_ENV=sandbox
 COOKIE_SAME_SITE=lax
-CLIENT_ORIGIN=https://PLACEHOLDER
+CLIENT_ORIGIN=<your Vercel URL from step 4>
 TRUST_PROXY_HOPS=1
 ```
 

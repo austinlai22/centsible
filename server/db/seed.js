@@ -20,7 +20,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { pool, connectClient } from "./client.js";
 
-const SEED_EMAIL = process.env.SEED_EMAIL || "demo@flowapp.test";
+const SEED_EMAIL = process.env.SEED_EMAIL || "demo@centsible.test";
 const SEED_PASSWORD = process.env.SEED_PASSWORD || crypto.randomBytes(9).toString("base64url");
 
 async function seed() {

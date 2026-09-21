@@ -9,9 +9,16 @@ import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { query, pool } from "../db/client.js";
 
-const EMAIL = "screenshots@flow.local";
+const EMAIL = "screenshots@centsible.local";
 const PASSWORD = "testpassword123";
-const SOURCE = process.argv[2] || "contact@example.com";
+// No default: the source account is whoever is running this, and baking a
+// real address into a public repo is both a privacy leak and useless to
+// anyone else who clones it.
+const SOURCE = process.argv[2];
+if (!SOURCE) {
+  console.error("Usage: node scripts/seed-screenshot-user.mjs <sourceEmail>\n  Copies an existing account's transactions into a stable screenshot account.");
+  process.exit(1);
+}
 
 await query("DELETE FROM users WHERE email = $1", [EMAIL]);
 
